@@ -1,23 +1,48 @@
 "use client";
 
-import { LayoutGrid, Maximize2, Map, ZoomIn, ZoomOut } from "lucide-react";
+import { LayoutGrid, Map, Maximize2, Redo2, Undo2, ZoomIn, ZoomOut } from "lucide-react";
 import { useReactFlow } from "@xyflow/react";
+import { useDiagramStore } from "@/store/diagram-store";
 
 interface CanvasControlsProps {
   showMinimap: boolean;
   onToggleMinimap: () => void;
   onAutoLayout: () => void;
+  onHistoryApplied?: () => void;
 }
 
 export function CanvasControls({
   showMinimap,
   onToggleMinimap,
   onAutoLayout,
+  onHistoryApplied,
 }: CanvasControlsProps) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const canUndo = useDiagramStore((s) => s.historyPast.length > 0);
+  const canRedo = useDiagramStore((s) => s.historyFuture.length > 0);
+  const undo = useDiagramStore((s) => s.undo);
+  const redo = useDiagramStore((s) => s.redo);
 
   return (
     <div className="absolute bottom-4 left-4 z-10 flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={() => void undo().then(() => onHistoryApplied?.())}
+        disabled={!canUndo}
+        className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-[#16213e] text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+        title="Cofnij (Ctrl+Z)"
+      >
+        <Undo2 className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => void redo().then(() => onHistoryApplied?.())}
+        disabled={!canRedo}
+        className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-[#16213e] text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+        title="Ponów (Ctrl+Y)"
+      >
+        <Redo2 className="h-4 w-4" />
+      </button>
       <button
         type="button"
         onClick={onAutoLayout}

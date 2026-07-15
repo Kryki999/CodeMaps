@@ -26,6 +26,16 @@ const NODE_ICONS: Record<NodeType, typeof Server> = {
   group: Layers,
 };
 
+const HANDLE_POSITIONS = [
+  { side: "top", position: Position.Top, className: "!top-0 !left-1/2 !-translate-x-1/2" },
+  { side: "right", position: Position.Right, className: "!right-0 !top-1/2 !-translate-y-1/2" },
+  { side: "bottom", position: Position.Bottom, className: "!bottom-0 !left-1/2 !-translate-x-1/2" },
+  { side: "left", position: Position.Left, className: "!left-0 !top-1/2 !-translate-y-1/2" },
+] as const;
+
+const HANDLE_CLASS =
+  "node-handle !h-2.5 !w-2.5 !border-2 !border-[#1a1a2e] !bg-indigo-400 transition-all duration-150 hover:!h-3 hover:!w-3 hover:!bg-indigo-300";
+
 function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
   const nodeData = data as ArchitectureNodeData;
   const status = nodeData.status ?? "planned";
@@ -80,9 +90,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
     (e: React.FocusEvent) => {
       if (!isEditing) return;
       const related = e.relatedTarget as HTMLElement | null;
-      if (related && containerRef.current?.contains(related)) {
-        return;
-      }
+      if (related && containerRef.current?.contains(related)) return;
       requestAnimationFrame(() => {
         if (!containerRef.current?.contains(document.activeElement)) {
           void commitSave();
@@ -117,15 +125,31 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
       onDoubleClick={handleDoubleClick}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
-      className={`nodrag nopan rounded-lg border-2 bg-[#16213e] shadow-lg transition-all duration-200 ease-out ${
+      className={`group rounded-lg border-2 bg-[#16213e] shadow-lg transition-all duration-200 ease-out ${
         isEditing
-          ? "min-w-[280px] max-w-[320px] scale-[1.02] px-3.5 py-3 ring-2 ring-indigo-400 ring-offset-2 ring-offset-[#1a1a2e] shadow-indigo-500/25"
+          ? "nodrag nopan min-w-[280px] max-w-[320px] scale-[1.02] px-3.5 py-3 ring-2 ring-indigo-400 ring-offset-2 ring-offset-[#1a1a2e] shadow-indigo-500/25"
           : `min-w-[200px] max-w-[260px] px-3 py-2.5 ${selected ? "shadow-indigo-500/30" : ""}`
       }`}
       style={{ borderColor: isEditing ? "#818cf8" : colors.border }}
     >
-      <Handle type="target" position={Position.Top} className="!h-2 !w-2 !bg-slate-400" />
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !bg-slate-400" />
+      {HANDLE_POSITIONS.map(({ side, position, className }) => (
+        <Handle
+          key={`${side}-source`}
+          id={`${side}-source`}
+          type="source"
+          position={position}
+          className={`${HANDLE_CLASS} ${className}`}
+        />
+      ))}
+      {HANDLE_POSITIONS.map(({ side, position, className }) => (
+        <Handle
+          key={`${side}-target`}
+          id={`${side}-target`}
+          type="target"
+          position={position}
+          className={`${HANDLE_CLASS} ${className}`}
+        />
+      ))}
 
       {isEditing ? (
         <div className="space-y-2.5">
@@ -165,9 +189,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
             />
           </div>
 
-          <p className="text-[10px] text-slate-500">
-            Enter zapisuje · Esc anuluje
-          </p>
+          <p className="text-[10px] text-slate-500">Enter zapisuje · Esc anuluje</p>
         </div>
       ) : (
         <>
@@ -196,9 +218,6 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
           )}
         </>
       )}
-
-      <Handle type="source" position={Position.Bottom} className="!h-2 !w-2 !bg-slate-400" />
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !bg-slate-400" />
     </div>
   );
 }

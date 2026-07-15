@@ -40,6 +40,9 @@ export const DiagramEdgeSchema = z.object({
   type: z.enum(EDGE_TYPES).optional(),
   label: z.string().optional(),
   animated: z.boolean().optional(),
+  dashed: z.boolean().optional(),
+  sourceHandle: z.string().optional(),
+  targetHandle: z.string().optional(),
 });
 
 export const DiagramMetadataSchema = z.object({

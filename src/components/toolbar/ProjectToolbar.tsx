@@ -14,6 +14,7 @@ export function ProjectToolbar() {
   const isConnected = useDiagramStore((s) => s.isConnected);
   const setDiagram = useDiagramStore((s) => s.setDiagram);
   const clearUserMovedNodes = useDiagramStore((s) => s.clearUserMovedNodes);
+  const clearHistory = useDiagramStore((s) => s.clearHistory);
   const updateMetadataName = useDiagramStore((s) => s.updateMetadataName);
   const setError = useDiagramStore((s) => s.setError);
   const { saveNow } = useDiagramPersist();
@@ -49,8 +50,8 @@ export function ProjectToolbar() {
       }
       const imported = json as Diagram;
       clearUserMovedNodes();
+      clearHistory();
       await saveNow(imported);
-      setDiagram(imported);
     } catch {
       setError("Nie udało się wczytać pliku JSON");
     }
@@ -59,8 +60,8 @@ export function ProjectToolbar() {
   const handleNewProject = async (name: string) => {
     const empty = createEmptyDiagram(name);
     clearUserMovedNodes();
+    clearHistory();
     await saveNow(empty);
-    setDiagram(empty);
     setShowNewDialog(false);
   };
 

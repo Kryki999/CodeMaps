@@ -28,21 +28,6 @@ interface NodeEditContextValue {
 
 const NodeEditContext = createContext<NodeEditContextValue | null>(null);
 
-async function saveDiagram(diagram: Diagram): Promise<Diagram> {
-  const res = await fetch("/api/diagram", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(diagram),
-  });
-
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(body.error ?? "Failed to save diagram");
-  }
-
-  return res.json() as Promise<Diagram>;
-}
-
 interface NodeEditProviderProps {
   children: ReactNode;
   onNodesUpdate: (nodes: Node<ArchitectureNodeData>[]) => void;
@@ -55,10 +40,10 @@ export function NodeEditProvider({
   onSyncRevisionBump,
 }: NodeEditProviderProps) {
   const editingNodeId = useDiagramStore((s) => s.editingNodeId);
-  const setDiagram = useDiagramStore((s) => s.setDiagram);
-  const markLocalWrite = useDiagramStore((s) => s.markLocalWrite);
-  const setInteracting = useDiagramStore((s) => s.setInteracting);
   const setEditingNodeId = useDiagramStore((s) => s.setEditingNodeId);
+  const setInteracting = useDiagramStore((s) => s.setInteracting);
+  const markLocalWrite = useDiagramStore((s) => s.markLocalWrite);
+  const commitDiagram = useDiagramStore((s) => s.commitDiagram);
   const setError = useDiagramStore((s) => s.setError);
 
   const startEditing = useCallback(
@@ -108,23 +93,17 @@ export function NodeEditProvider({
           : node,
       );
 
-      const optimistic: Diagram = {
-        ...current,
-        nodes: updatedNodes,
-        metadata: { ...current.metadata, updatedAt: new Date().toISOString() },
-      };
-
-      setDiagram(optimistic);
+      const updated: Diagram = { ...current, nodes: updatedNodes };
       onNodesUpdate(updatedNodes.map((n) => diagramNodeToFlowNode(n)));
-      markLocalWrite();
 
       try {
-        const saved = await saveDiagram(optimistic);
-        setDiagram(saved);
-        onNodesUpdate(saved.nodes.map((n) => diagramNodeToFlowNode(n)));
-        onSyncRevisionBump();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Nie udało się zapisać zmian");
+        const saved = await commitDiagram(updated);
+        if (saved) {
+          onNodesUpdate(saved.nodes.map((n) => diagramNodeToFlowNode(n)));
+          onSyncRevisionBump();
+        }
+      } catch {
+        setError("Nie udało się zapisać zmian");
       } finally {
         setEditingNodeId(null);
         setInteracting(false);
@@ -132,10 +111,9 @@ export function NodeEditProvider({
     },
     [
       cancelEditing,
-      markLocalWrite,
+      commitDiagram,
       onNodesUpdate,
       onSyncRevisionBump,
-      setDiagram,
       setEditingNodeId,
       setError,
       setInteracting,

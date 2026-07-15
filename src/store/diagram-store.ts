@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { CANVAS_CONFIG } from "@/lib/constants";
+import { saveDiagramToApi } from "@/lib/diagram-api";
+import { cloneDiagram, MAX_HISTORY_SIZE } from "@/lib/diagram-history";
 import type { Diagram } from "@/types/diagram";
 
 interface DiagramStore {
@@ -11,6 +13,10 @@ interface DiagramStore {
   isConnected: boolean;
   isInteracting: boolean;
   editingNodeId: string | null;
+  editingEdgeId: string | null;
+  historyPast: Diagram[];
+  historyFuture: Diagram[];
+  isApplyingHistory: boolean;
 
   setDiagram: (diagram: Diagram) => void;
   setLoading: (loading: boolean) => void;
@@ -18,10 +24,22 @@ interface DiagramStore {
   setConnected: (connected: boolean) => void;
   setInteracting: (interacting: boolean) => void;
   setEditingNodeId: (nodeId: string | null) => void;
+  setEditingEdgeId: (edgeId: string | null) => void;
   markNodeMoved: (nodeId: string) => void;
+  markAllNodesMoved: (nodeIds: string[]) => void;
   clearUserMovedNodes: () => void;
   markLocalWrite: () => void;
   shouldIgnoreRemoteUpdate: () => boolean;
+  pushHistory: () => void;
+  commitDiagram: (
+    next: Diagram,
+    options?: { recordHistory?: boolean; persist?: boolean },
+  ) => Promise<Diagram | null>;
+  undo: () => Promise<Diagram | null>;
+  redo: () => Promise<Diagram | null>;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
+  clearHistory: () => void;
   updateViewport: (viewport: Diagram["viewport"]) => void;
   updateMetadataName: (name: string) => void;
 }
@@ -35,6 +53,10 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   isConnected: false,
   isInteracting: false,
   editingNodeId: null,
+  editingEdgeId: null,
+  historyPast: [],
+  historyFuture: [],
+  isApplyingHistory: false,
 
   setDiagram: (diagram) => set({ diagram, error: null }),
   setLoading: (isLoading) => set({ isLoading }),
@@ -42,6 +64,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   setConnected: (isConnected) => set({ isConnected }),
   setInteracting: (isInteracting) => set({ isInteracting }),
   setEditingNodeId: (editingNodeId) => set({ editingNodeId }),
+  setEditingEdgeId: (editingEdgeId) => set({ editingEdgeId }),
 
   markNodeMoved: (nodeId) =>
     set((state) => {
@@ -50,15 +73,122 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
       return { userMovedNodeIds };
     }),
 
+  markAllNodesMoved: (nodeIds) =>
+    set({ userMovedNodeIds: new Set(nodeIds) }),
+
   clearUserMovedNodes: () => set({ userMovedNodeIds: new Set() }),
 
   markLocalWrite: () => set({ lastLocalWriteAt: Date.now() }),
 
   shouldIgnoreRemoteUpdate: () => {
-    const { lastLocalWriteAt, isInteracting, editingNodeId } = get();
-    if (isInteracting || editingNodeId) return true;
+    const { lastLocalWriteAt, isInteracting, editingNodeId, editingEdgeId, isApplyingHistory } =
+      get();
+    if (isInteracting || editingNodeId || editingEdgeId || isApplyingHistory) return true;
     return Date.now() - lastLocalWriteAt < CANVAS_CONFIG.localWriteIgnoreMs;
   },
+
+  pushHistory: () => {
+    const { diagram, historyPast } = get();
+    if (!diagram) return;
+    const snapshot = cloneDiagram(diagram);
+    const nextPast = [...historyPast, snapshot].slice(-MAX_HISTORY_SIZE);
+    set({ historyPast: nextPast, historyFuture: [] });
+  },
+
+  commitDiagram: async (next, options = {}) => {
+    const { recordHistory = true, persist = true } = options;
+    const { diagram } = get();
+
+    if (recordHistory && diagram && !get().isApplyingHistory) {
+      get().pushHistory();
+    }
+
+    const withTimestamp: Diagram = {
+      ...next,
+      metadata: { ...next.metadata, updatedAt: new Date().toISOString() },
+    };
+
+    set({ diagram: withTimestamp, error: null });
+    get().markLocalWrite();
+
+    if (!persist) return withTimestamp;
+
+    try {
+      const saved = await saveDiagramToApi(withTimestamp);
+      set({ diagram: saved });
+      get().markLocalWrite();
+      return saved;
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : "Nie udało się zapisać diagramu",
+      });
+      return null;
+    }
+  },
+
+  undo: async () => {
+    const { historyPast, diagram, historyFuture } = get();
+    if (historyPast.length === 0 || !diagram) return null;
+
+    const previous = historyPast[historyPast.length - 1];
+    const current = cloneDiagram(diagram);
+
+    set({
+      isApplyingHistory: true,
+      historyPast: historyPast.slice(0, -1),
+      historyFuture: [current, ...historyFuture].slice(0, MAX_HISTORY_SIZE),
+      diagram: previous,
+      editingNodeId: null,
+      editingEdgeId: null,
+    });
+
+    get().markLocalWrite();
+    try {
+      const saved = await saveDiagramToApi(previous);
+      set({ diagram: saved });
+      get().markLocalWrite();
+      return saved;
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : "Cofanie nie powiodło się" });
+      return null;
+    } finally {
+      set({ isApplyingHistory: false });
+    }
+  },
+
+  redo: async () => {
+    const { historyFuture, diagram, historyPast } = get();
+    if (historyFuture.length === 0 || !diagram) return null;
+
+    const next = historyFuture[0];
+    const current = cloneDiagram(diagram);
+
+    set({
+      isApplyingHistory: true,
+      historyFuture: historyFuture.slice(1),
+      historyPast: [...historyPast, current].slice(-MAX_HISTORY_SIZE),
+      diagram: next,
+      editingNodeId: null,
+      editingEdgeId: null,
+    });
+
+    get().markLocalWrite();
+    try {
+      const saved = await saveDiagramToApi(next);
+      set({ diagram: saved });
+      get().markLocalWrite();
+      return saved;
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : "Ponowienie nie powiodło się" });
+      return null;
+    } finally {
+      set({ isApplyingHistory: false });
+    }
+  },
+
+  canUndo: () => get().historyPast.length > 0,
+  canRedo: () => get().historyFuture.length > 0,
+  clearHistory: () => set({ historyPast: [], historyFuture: [] }),
 
   updateViewport: (viewport) =>
     set((state) => {

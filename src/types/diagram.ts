@@ -34,9 +34,12 @@ export interface DiagramEdge {
   id: string;
   source: string;
   target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
   type?: EdgeType;
   label?: string;
   animated?: boolean;
+  dashed?: boolean;
 }
 
 export interface DiagramMetadata {

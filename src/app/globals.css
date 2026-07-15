@@ -21,6 +21,30 @@ body {
   display: none;
 }
 
+.node-handle {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.group:hover .node-handle,
+.react-flow__node.selected .node-handle,
+.react-flow__handle.connecting,
+.react-flow__handle.valid {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.react-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.6);
 }

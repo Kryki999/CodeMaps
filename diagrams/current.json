@@ -5,12 +5,12 @@
     "name": "Monolit → Mikroserwisy",
     "description": "Przykładowy diagram rozbicia monolitu na frontend, backend i bazę danych",
     "createdAt": "2026-07-14T12:00:00.000Z",
-    "updatedAt": "2026-07-15T16:45:30.143Z"
+    "updatedAt": "2026-07-15T17:22:25.602Z"
   },
   "viewport": {
-    "x": 21.013819191082007,
-    "y": 84.94902462198507,
-    "zoom": 0.7578582832551991
+    "x": 76.0576510444416,
+    "y": 131.7575141434234,
+    "zoom": 0.7578582832552005
   },
   "nodes": [
     {
@@ -18,8 +18,8 @@
       "type": "service",
       "label": "Frontend",
       "position": {
-        "x": 368,
-        "y": 48
+        "x": -48,
+        "y": -208
       },
       "data": {
         "tech": [
@@ -36,8 +36,8 @@
       "type": "service",
       "label": "Backend API",
       "position": {
-        "x": 368,
-        "y": 272
+        "x": 240,
+        "y": 288
       },
       "data": {
         "tech": [
@@ -151,6 +151,24 @@
       "type": "data-flow",
       "label": "cache read/write",
       "animated": true
+    },
+    {
+      "id": "database-to-backend-l28z",
+      "source": "database",
+      "target": "backend",
+      "type": "http",
+      "animated": false,
+      "dashed": true,
+      "sourceHandle": "top-source",
+      "targetHandle": "right-target"
+    },
+    {
+      "id": "database-to-frontend-max9",
+      "source": "database",
+      "target": "frontend",
+      "type": "http",
+      "sourceHandle": "bottom-source",
+      "targetHandle": "top-target"
     }
   ]
 }
