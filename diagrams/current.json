@@ -5,12 +5,12 @@
     "name": "Monolit → Mikroserwisy",
     "description": "Przykładowy diagram rozbicia monolitu na frontend, backend i bazę danych",
     "createdAt": "2026-07-14T12:00:00.000Z",
-    "updatedAt": "2026-07-15T16:34:44.247Z"
+    "updatedAt": "2026-07-15T16:45:30.143Z"
   },
   "viewport": {
-    "x": 307.00564027196833,
-    "y": 144.30910269543477,
-    "zoom": 0.6919575629721382
+    "x": 21.013819191082007,
+    "y": 84.94902462198507,
+    "zoom": 0.7578582832551991
   },
   "nodes": [
     {
@@ -18,8 +18,8 @@
       "type": "service",
       "label": "Frontend",
       "position": {
-        "x": 96,
-        "y": 80
+        "x": 368,
+        "y": 48
       },
       "data": {
         "tech": [
@@ -36,8 +36,8 @@
       "type": "service",
       "label": "Backend API",
       "position": {
-        "x": 100,
-        "y": 280
+        "x": 368,
+        "y": 272
       },
       "data": {
         "tech": [
@@ -54,8 +54,8 @@
       "type": "database",
       "label": "PostgreSQL",
       "position": {
-        "x": 100,
-        "y": 480
+        "x": 688,
+        "y": 512
       },
       "data": {
         "tech": [
@@ -71,8 +71,8 @@
       "type": "component",
       "label": "Auth Module",
       "position": {
-        "x": -296,
-        "y": 376
+        "x": 368,
+        "y": 512
       },
       "data": {
         "tech": [
@@ -89,8 +89,8 @@
       "type": "cache",
       "label": "Redis",
       "position": {
-        "x": 400,
-        "y": 480
+        "x": 48,
+        "y": 512
       },
       "data": {
         "tech": [
@@ -106,8 +106,8 @@
       "type": "service",
       "label": "API Gateway",
       "position": {
-        "x": 700,
-        "y": 180
+        "x": 688,
+        "y": 48
       },
       "data": {
         "tech": [

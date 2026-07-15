@@ -37,9 +37,9 @@ export const CANVAS_CONFIG = {
   minZoom: 0.1,
   maxZoom: 2,
   defaultZoom: 1,
-  snapGrid: [8, 8] as [number, number],
+  snapGrid: [16, 16] as [number, number],
   persistDebounceMs: 300,
   sseReconnectBaseMs: 1000,
   sseReconnectMaxMs: 10000,
-  localWriteIgnoreMs: 500,
+  localWriteIgnoreMs: 2000,
 };

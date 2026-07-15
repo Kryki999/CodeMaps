@@ -23,13 +23,14 @@ export function useDiagramPersist() {
   const setDiagram = useDiagramStore((s) => s.setDiagram);
   const markNodeMoved = useDiagramStore((s) => s.markNodeMoved);
   const markLocalWrite = useDiagramStore((s) => s.markLocalWrite);
+  const setInteracting = useDiagramStore((s) => s.setInteracting);
   const setError = useDiagramStore((s) => s.setError);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const diagramRef = useRef(diagram);
   diagramRef.current = diagram;
 
-  const persist = useCallback(
+  const persistDebounced = useCallback(
     (nextDiagram: Diagram) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
 
@@ -43,15 +44,23 @@ export function useDiagramPersist() {
     [markLocalWrite, setError],
   );
 
+  const onNodeDragStart = useCallback(() => {
+    setInteracting(true);
+    markLocalWrite();
+  }, [markLocalWrite, setInteracting]);
+
   const onNodeDragStop = useCallback<OnNodeDrag<Node<ArchitectureNodeData>>>(
     (_event, _node, nodes) => {
       const current = diagramRef.current;
-      if (!current) return;
+      if (!current) {
+        setInteracting(false);
+        return;
+      }
 
       const positionMap = new Map(nodes.map((n) => [n.id, n.position]));
-      const updatedNodes = current.nodes.map((node) => {
-        const pos = positionMap.get(node.id);
-        return pos ? { ...node, position: pos } : node;
+      const updatedNodes = current.nodes.map((diagramNode) => {
+        const pos = positionMap.get(diagramNode.id);
+        return pos ? { ...diagramNode, position: pos } : diagramNode;
       });
 
       for (const n of nodes) {
@@ -59,10 +68,19 @@ export function useDiagramPersist() {
       }
 
       const updated: Diagram = { ...current, nodes: updatedNodes };
+      diagramRef.current = updated;
       setDiagram(updated);
-      persist(updated);
+      markLocalWrite();
+
+      void saveDiagram(updated)
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : "Failed to save");
+        })
+        .finally(() => {
+          setInteracting(false);
+        });
     },
-    [markNodeMoved, persist, setDiagram],
+    [markLocalWrite, markNodeMoved, setDiagram, setError, setInteracting],
   );
 
   const onViewportChange = useCallback(
@@ -72,9 +90,9 @@ export function useDiagramPersist() {
 
       const updated: Diagram = { ...current, viewport };
       setDiagram(updated);
-      persist(updated);
+      persistDebounced(updated);
     },
-    [persist, setDiagram],
+    [persistDebounced, setDiagram],
   );
 
   const saveNow = useCallback(
@@ -84,11 +102,17 @@ export function useDiagramPersist() {
 
       if (debounceRef.current) clearTimeout(debounceRef.current);
       markLocalWrite();
-      await saveDiagram(toSave);
-      setDiagram(toSave);
+      setInteracting(true);
+      try {
+        await saveDiagram(toSave);
+        setDiagram(toSave);
+        diagramRef.current = toSave;
+      } finally {
+        setInteracting(false);
+      }
     },
-    [markLocalWrite, setDiagram],
+    [markLocalWrite, setDiagram, setInteracting],
   );
 
-  return { onNodeDragStop, onViewportChange, saveNow, persist };
+  return { onNodeDragStart, onNodeDragStop, onViewportChange, saveNow, persistDebounced };
 }

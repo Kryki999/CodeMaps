@@ -16,8 +16,6 @@ export function useDiagramSync() {
   const setLoading = useDiagramStore((s) => s.setLoading);
   const setError = useDiagramStore((s) => s.setError);
   const setConnected = useDiagramStore((s) => s.setConnected);
-  const shouldIgnoreRemoteUpdate = useDiagramStore((s) => s.shouldIgnoreRemoteUpdate);
-  const userMovedNodeIds = useDiagramStore((s) => s.userMovedNodeIds);
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -26,7 +24,10 @@ export function useDiagramSync() {
 
   const applyIncoming = useCallback(
     (incoming: Diagram) => {
-      if (shouldIgnoreRemoteUpdate()) return;
+      const { isInteracting, shouldIgnoreRemoteUpdate, userMovedNodeIds } =
+        useDiagramStore.getState();
+
+      if (isInteracting || shouldIgnoreRemoteUpdate()) return;
 
       const current = diagramRef.current;
       const merged = mergeDiagram(incoming, current, userMovedNodeIds);
@@ -34,7 +35,7 @@ export function useDiagramSync() {
       diagramRef.current = positioned;
       setDiagram(positioned);
     },
-    [setDiagram, shouldIgnoreRemoteUpdate, userMovedNodeIds],
+    [setDiagram],
   );
 
   const connectSSE = useCallback(() => {

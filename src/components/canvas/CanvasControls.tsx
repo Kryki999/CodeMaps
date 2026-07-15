@@ -1,18 +1,31 @@
 "use client";
 
-import { Maximize2, Map, ZoomIn, ZoomOut } from "lucide-react";
+import { LayoutGrid, Maximize2, Map, ZoomIn, ZoomOut } from "lucide-react";
 import { useReactFlow } from "@xyflow/react";
 
 interface CanvasControlsProps {
   showMinimap: boolean;
   onToggleMinimap: () => void;
+  onAutoLayout: () => void;
 }
 
-export function CanvasControls({ showMinimap, onToggleMinimap }: CanvasControlsProps) {
+export function CanvasControls({
+  showMinimap,
+  onToggleMinimap,
+  onAutoLayout,
+}: CanvasControlsProps) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   return (
     <div className="absolute bottom-4 left-4 z-10 flex flex-col gap-1">
+      <button
+        type="button"
+        onClick={onAutoLayout}
+        className="flex h-8 w-8 items-center justify-center rounded-md border border-indigo-600/60 bg-indigo-950/80 text-indigo-300 hover:bg-indigo-900/60"
+        title="Uporządkuj automatycznie"
+      >
+        <LayoutGrid className="h-4 w-4" />
+      </button>
       <button
         type="button"
         onClick={() => zoomIn({ duration: 200 })}

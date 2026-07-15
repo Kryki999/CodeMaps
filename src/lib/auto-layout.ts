@@ -6,9 +6,25 @@ export function layoutDiagram(diagram: Diagram): Diagram {
   const nodesNeedingLayout = diagram.nodes.filter((n) => !n.position);
   if (nodesNeedingLayout.length === 0) return diagram;
 
+  return relayoutDiagram(diagram);
+}
+
+/** Re-layout all nodes using Dagre, ignoring existing positions. */
+export function relayoutDiagram(
+  diagram: Diagram,
+  rankdir: "TB" | "LR" = "TB",
+): Diagram {
+  if (diagram.nodes.length === 0) return diagram;
+
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "TB", nodesep: 80, ranksep: 100 });
+  g.setGraph({
+    rankdir,
+    nodesep: 100,
+    ranksep: 120,
+    marginx: 48,
+    marginy: 48,
+  });
 
   for (const node of diagram.nodes) {
     g.setNode(node.id, {
@@ -24,19 +40,14 @@ export function layoutDiagram(diagram: Diagram): Diagram {
   dagre.layout(g);
 
   const positionedNodes: DiagramNode[] = diagram.nodes.map((node) => {
-    if (node.position) return node;
-
     const layoutNode = g.node(node.id);
     if (!layoutNode) {
-      return {
-        ...node,
-        position: { x: 0, y: 0 },
-      };
+      return { ...node, position: { x: 0, y: 0 } };
     }
 
     const position: Position = {
-      x: layoutNode.x - NODE_DIMENSIONS.width / 2,
-      y: layoutNode.y - NODE_DIMENSIONS.height / 2,
+      x: Math.round((layoutNode.x - NODE_DIMENSIONS.width / 2) / 16) * 16,
+      y: Math.round((layoutNode.y - NODE_DIMENSIONS.height / 2) / 16) * 16,
     };
 
     return { ...node, position };
