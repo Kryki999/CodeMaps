@@ -1,0 +1,156 @@
+{
+  "$schema": "./diagram.schema.json",
+  "version": "1.0",
+  "metadata": {
+    "name": "Monolit → Mikroserwisy",
+    "description": "Przykładowy diagram rozbicia monolitu na frontend, backend i bazę danych",
+    "createdAt": "2026-07-14T12:00:00.000Z",
+    "updatedAt": "2026-07-15T16:34:44.247Z"
+  },
+  "viewport": {
+    "x": 307.00564027196833,
+    "y": 144.30910269543477,
+    "zoom": 0.6919575629721382
+  },
+  "nodes": [
+    {
+      "id": "frontend",
+      "type": "service",
+      "label": "Frontend",
+      "position": {
+        "x": 96,
+        "y": 80
+      },
+      "data": {
+        "tech": [
+          "Next.js",
+          "React"
+        ],
+        "description": "Warstwa prezentacji — UI i routing",
+        "status": "planned",
+        "codeRef": null
+      }
+    },
+    {
+      "id": "backend",
+      "type": "service",
+      "label": "Backend API",
+      "position": {
+        "x": 100,
+        "y": 280
+      },
+      "data": {
+        "tech": [
+          "Node.js",
+          "Express"
+        ],
+        "description": "Logika biznesowa i endpointy REST",
+        "status": "planned",
+        "codeRef": null
+      }
+    },
+    {
+      "id": "database",
+      "type": "database",
+      "label": "PostgreSQL",
+      "position": {
+        "x": 100,
+        "y": 480
+      },
+      "data": {
+        "tech": [
+          "PostgreSQL"
+        ],
+        "description": "Relacyjna baza danych",
+        "status": "planned",
+        "codeRef": null
+      }
+    },
+    {
+      "id": "auth-service",
+      "type": "component",
+      "label": "Auth Module",
+      "position": {
+        "x": -296,
+        "y": 376
+      },
+      "data": {
+        "tech": [
+          "JWT",
+          "OAuth"
+        ],
+        "description": "Moduł uwierzytelniania użytkowników",
+        "status": "planned",
+        "codeRef": null
+      }
+    },
+    {
+      "id": "redis",
+      "type": "cache",
+      "label": "Redis",
+      "position": {
+        "x": 400,
+        "y": 480
+      },
+      "data": {
+        "tech": [
+          "Redis"
+        ],
+        "description": "Cache sesji i rate limiting",
+        "status": "planned",
+        "codeRef": null
+      }
+    },
+    {
+      "id": "api-gateway",
+      "type": "service",
+      "label": "API Gateway",
+      "position": {
+        "x": 700,
+        "y": 180
+      },
+      "data": {
+        "tech": [
+          "Kong"
+        ],
+        "description": "Hot reload test node",
+        "status": "planned",
+        "codeRef": null
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "fe-be",
+      "source": "frontend",
+      "target": "backend",
+      "type": "http",
+      "label": "REST API",
+      "animated": false
+    },
+    {
+      "id": "be-db",
+      "source": "backend",
+      "target": "database",
+      "type": "data-flow",
+      "label": "SQL queries",
+      "animated": false
+    },
+    {
+      "id": "be-auth",
+      "source": "backend",
+      "target": "auth-service",
+      "type": "dependency",
+      "label": "uses",
+      "animated": false
+    },
+    {
+      "id": "be-redis",
+      "source": "backend",
+      "target": "redis",
+      "type": "data-flow",
+      "label": "cache read/write",
+      "animated": true
+    }
+  ]
+}

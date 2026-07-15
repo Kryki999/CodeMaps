@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #1a1a2e;
+  color: #e2e8f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.react-flow__attribution {
+  display: none;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}

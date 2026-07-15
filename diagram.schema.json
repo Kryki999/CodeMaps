@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://codemaps.local/diagram.schema.json",
+  "title": "CodeMaps Diagram",
+  "description": "Schema for CodeMaps architecture diagrams edited by Cursor agents",
+  "type": "object",
+  "required": ["version", "metadata", "viewport", "nodes", "edges"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "string", "const": "1.0" },
+    "metadata": {
+      "type": "object",
+      "required": ["name", "createdAt", "updatedAt"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "viewport": {
+      "type": "object",
+      "required": ["x", "y", "zoom"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "zoom": { "type": "number", "minimum": 0.1, "maximum": 4 }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/edge" }
+    }
+  },
+  "definitions": {
+    "node": {
+      "type": "object",
+      "required": ["id", "type", "label"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "description": "Unique kebab-case identifier"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["service", "database", "component", "queue", "cache", "external", "group"]
+        },
+        "label": { "type": "string", "minLength": 1 },
+        "position": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tech": { "type": "array", "items": { "type": "string" } },
+            "description": { "type": "string" },
+            "status": { "type": "string", "enum": ["planned", "existing", "deprecated"] },
+            "codeRef": { "type": ["string", "null"], "description": "Path to source file in repo" }
+          }
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["id", "source", "target"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "source": { "type": "string" },
+        "target": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["http", "websocket", "event", "dependency", "data-flow"]
+        },
+        "label": { "type": "string" },
+        "animated": { "type": "boolean" }
+      }
+    }
+  }
+}

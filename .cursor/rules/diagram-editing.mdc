@@ -1,0 +1,32 @@
+---
+description: Edit CodeMaps architecture diagrams when the user asks about system design, architecture, schemas, or visual diagrams.
+globs:
+  - diagrams/**
+  - diagram.schema.json
+---
+
+# CodeMaps Diagram Editing
+
+When the user asks to draw, update, split, or visualize a system architecture, edit `diagrams/current.json`.
+
+## Rules
+
+1. Always read `diagrams/current.json` before editing
+2. Validate against `diagram.schema.json`
+3. Use unique kebab-case IDs for nodes and edges
+4. New nodes: omit `position` (auto-layout)
+5. Do not change positions of existing nodes unless asked
+6. Update `metadata.updatedAt` to current ISO timestamp on every save
+7. Ensure all edge source/target reference valid node IDs
+
+## Node types
+
+`service` | `database` | `component` | `queue` | `cache` | `external` | `group`
+
+## Edge types
+
+`http` | `websocket` | `event` | `dependency` | `data-flow`
+
+## Full documentation
+
+See [AGENTS.md](AGENTS.md) for examples and validation checklist.
