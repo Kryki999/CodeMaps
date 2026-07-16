@@ -25,6 +25,12 @@ export interface Viewport {
 
 export interface NodeData {
   tech?: string[];
+  /**
+   * Plain-language “what is this for” — readable by non-engineers.
+   * Shown on the collapsed tile; agents use it for intent.
+   */
+  purpose?: string;
+  /** Technical notes — constraints, implementation reality, agent/dev hints. */
   description?: string;
   status?: NodeStatus;
   health?: NodeHealth;

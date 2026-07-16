@@ -47,9 +47,11 @@ Nodes are a **flat list** with optional `parentId` (not a nested tree). This kee
 6. **`data.status` (lifecycle):** `planned` | `existing` | `deprecated`
 7. **`data.health` (stability):** `stable` | `warning` | `critical` — flag `critical` when you find a bug in `codeRef`
 8. **`data.tech`:** technology badges
-9. **`data.deps` / `data.exports`:** living documentation (libraries, key functions/types)
-10. **`data.codeRef`:** path to source file/folder
-11. **`data.depthHint`:** optional `1` | `2` | `3` C4 hint for agents
+9. **`data.purpose`:** plain-language “po co to jest / za co odpowiada” (non-technical)
+10. **`data.description`:** technical notes for developers and agents
+11. **`data.deps` / `data.exports`:** living documentation (libraries, key functions/types)
+12. **`data.codeRef`:** path to source file/folder
+13. **`data.depthHint`:** optional `1` | `2` | `3` C4 hint for agents
 
 ## Edge Rules
 
@@ -137,7 +139,8 @@ Before saving, verify:
   "parentId": "frontend",
   "data": {
     "tech": ["React"],
-    "description": "Ekrany i flow logowania",
+    "purpose": "Logowanie i wejście użytkownika do aplikacji — formularz, błędy, przejście do panelu.",
+    "description": "Ekrany i flow logowania; LoginForm + submit handler",
     "status": "planned",
     "health": "stable",
     "exports": ["LoginForm"],

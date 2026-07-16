@@ -20,7 +20,8 @@
       "position": { "x": 100, "y": 80 },
       "data": {
         "tech": ["Next.js", "React"],
-        "description": "Warstwa prezentacji — UI i routing",
+        "purpose": "To, co widzi użytkownik w przeglądarce — ekrany, nawigacja, formularze.",
+        "description": "Warstwa prezentacji — UI i routing (Next.js App Router)",
         "status": "planned",
         "health": "stable",
         "codeRef": null,
@@ -35,6 +36,7 @@
       "position": { "x": 100, "y": 280 },
       "data": {
         "tech": ["Node.js", "Express"],
+        "purpose": "Serwer aplikacji — przyjmuje żądania ze strony i wykonuje logikę (konta, dane, reguły).",
         "description": "Logika biznesowa i endpointy REST",
         "status": "planned",
         "health": "stable",
@@ -50,6 +52,7 @@
       "position": { "x": 100, "y": 480 },
       "data": {
         "tech": ["PostgreSQL"],
+        "purpose": "Trwałe przechowywanie danych aplikacji (użytkownicy, rekordy biznesowe).",
         "description": "Relacyjna baza danych",
         "status": "planned",
         "health": "stable",
@@ -64,7 +67,8 @@
       "parentId": "backend",
       "data": {
         "tech": ["JWT", "OAuth"],
-        "description": "Moduł uwierzytelniania użytkowników",
+        "purpose": "Logowanie i weryfikacja tożsamości użytkownika.",
+        "description": "Moduł uwierzytelniania — JWT / OAuth",
         "status": "planned",
         "health": "warning",
         "codeRef": null,
@@ -78,6 +82,7 @@
       "parentId": "backend",
       "data": {
         "tech": ["Redis"],
+        "purpose": "Szybka pamięć podręczna — sesje i ograniczenie liczby prób (np. logowania).",
         "description": "Cache sesji i rate limiting",
         "status": "planned",
         "health": "stable",

@@ -10,8 +10,9 @@ function nodeLine(node: DiagramNode): string {
   const d = node.data;
   return [
     `- **${node.id}** (${node.type}) — ${node.label}`,
-    d?.description ? `  - opis: ${d.description}` : null,
-    d?.tech?.length ? `  - tech: ${list(d.tech)}` : null,
+    d?.purpose ? `  - po co: ${d.purpose}` : null,
+    d?.description ? `  - tech: ${d.description}` : null,
+    d?.tech?.length ? `  - stack: ${list(d.tech)}` : null,
     d?.codeRef ? `  - codeRef: ${d.codeRef}` : null,
     d?.status ? `  - status: ${d.status}` : null,
     d?.health ? `  - health: ${d.health}` : null,
@@ -121,17 +122,43 @@ export function buildAgentPrompt(
 
   const d = focus.data;
 
+  const outOfScopeIds = diagram.nodes
+    .filter((n) => n.id !== focus.id && !sliceIds.has(n.id) && !neighborIds.has(n.id))
+    .map((n) => n.id);
+
+  const neighborIdList =
+    neighbors.length > 0
+      ? neighbors.map((n) => `\`${n.id}\``).join(", ")
+      : "(brak)";
+  const childIdList =
+    children.length > 0
+      ? children.map((n) => `\`${n.id}\``).join(", ")
+      : "(brak)";
+
   const sections = [
     `# CodeMaps — Scaffold z mapy (Faza 3)`,
     ``,
-    `Zaimplementuj / rozwiń ten fragment systemu w mapowanym repozytorium.`,
+    `Zaimplementuj / rozwiń **tylko ten fragment** systemu w mapowanym repozytorium.`,
     `Źródło prawdy struktury: \`.codemaps/architecture.json\`. Nie używaj Mermaid jako mapy.`,
     profileWarning,
+    `## Zakres pracy (obowiązkowy)`,
+    `- **W zakresie:** fokus \`${focus.id}\`${children.length > 0 ? ` oraz jego dzieci: ${childIdList}` : ""}.`,
+    `- **Sąsiedzi (tylko integracja, nie reimplementacja):** ${neighborIdList}.`,
+    `- **Poza zakresem:** nie refaktoruj / nie „ulepszaj” innych modułów z mapy, chyba że użytkownik explicite poprosi.`,
+    outOfScopeIds.length > 0
+      ? `- Przykłady id poza slice (nie ruszaj bez prośby): ${outOfScopeIds
+          .slice(0, 12)
+          .map((id) => `\`${id}\``)
+          .join(", ")}${outOfScopeIds.length > 12 ? ", …" : ""}.`
+      : null,
+    `- Mała zmiana UI/copy/CSS **bez** zmiany odpowiedzialności → kod OK, mapa: \`codemaps: no arch change\`.`,
+    ``,
     `## Fokus`,
     `- id: \`${focus.id}\``,
     `- label: ${focus.label}`,
     `- type: ${focus.type}`,
-    `- description: ${d?.description?.trim() || "—"}`,
+    `- purpose (po co to jest, prostym językiem): ${d?.purpose?.trim() || "—"}`,
+    `- description (notatki techniczne): ${d?.description?.trim() || "—"}`,
     `- tech: ${list(d?.tech)}`,
     `- deps: ${list(d?.deps)}`,
     `- exports: ${list(d?.exports)}`,
@@ -155,15 +182,19 @@ export function buildAgentPrompt(
     ``,
     stackInstructions(stackProfile),
     ``,
-    `## Wymagania sync (obowiązkowe)`,
-    `1. Napisz kod w projectRoot mapowanego projektu.`,
-    `2. Zaktualizuj \`.codemaps/architecture.json\` w tym samym change set:`,
-    `   - ustaw \`codeRef\` na realną ścieżkę`,
-    `   - \`status: existing\` gdy kod powstał`,
-    `   - uzupełnij \`exports\` / \`deps\` jeśli ma sens`,
-    `3. Nie zmieniaj \`position\` istniejących węzłów bez prośby.`,
-    `4. Nie duplikuj sąsiadów już na mapie — integruj.`,
-    `5. Patrz skill CodeMaps Flow D + docs/SYNC.md.`,
+    `## Checklist po zmianie (obowiązkowa)`,
+    `1. Kod w projectRoot mapowanego projektu — w zakresie fokusu.`,
+    `2. Mapa \`.codemaps/architecture.json\` w **tym samym** change set, **albo** jawne \`codemaps: no arch change\` gdy architektura się nie zmieniła.`,
+    `3. Jeśli mapa się zmienia, sprawdź:`,
+    `   - [ ] \`codeRef\` wskazuje realną ścieżkę`,
+    `   - [ ] \`status\` (\`existing\` gdy kod jest; \`planned\` / \`deprecated\` wg stanu)`,
+    `   - [ ] \`purpose\` (prosty język) aktualne względem zachowania`,
+    `   - [ ] \`description\` (notatki tech) — mock vs real, ograniczenia`,
+    `   - [ ] \`exports\` / \`deps\` jeśli publiczne API / biblioteki się zmieniły`,
+    `   - [ ] \`health\` — \`critical\` przy znalezionym bugu w codeRef; po fixie \`stable\`/\`warning\``,
+    `4. Nie zmieniaj \`position\` istniejących węzłów bez prośby.`,
+    `5. Nie duplikuj sąsiadów z mapy — integruj.`,
+    `6. Skill: CodeMaps Flow D + docs/SYNC.md. Przy większym tasku rozważ Flow E (drift) przed kodem.`,
     ``,
     `## Twoje dodatkowe wymagania użytkownika`,
     `(użytkownik może dopisać poniżej po wklejeniu promptu)`,

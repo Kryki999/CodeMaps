@@ -19,8 +19,13 @@ Git + SSE hot-reload tylko **dostarczają** plik na canvas.
 Feature / fix jest „done” dopiero gdy:
 
 - [ ] Kod działa
-- [ ] Mapa odzwierciedla zmianę (węzeł, krawędź, `codeRef`, `health`, albo świadome „bez zmian w architekturze”)
+- [ ] Mapa odzwierciedla zmianę **albo** świadome `codemaps: no arch change`
+- [ ] Przy zmianie kafelka: sensowny `purpose` (prosty język) + `description` (tech) jeśli zachowanie/stan tech się zmienił
 - [ ] W PR widać diff `.codemaps/` **albo** komentarz: `codemaps: no arch change`
+
+**Kiedy mapa NIE jest wymagana:** poprawka copy/CSS, drobny bugfix w istniejącym pliku bez nowej odpowiedzialności, rename lokalny bez zmiany granic modułów.
+
+**Kiedy warto odpalić Drift przed pracą:** nowy moduł, podmiana mock→API, większy refaktor granic — nie przy kosmetyce.
 
 ### Review PR
 
@@ -38,10 +43,10 @@ Pytania przy review:
 
 ### Onboarding nowego repo
 
-1. Ustaw `.codemaps/config.json` → `projectRoot` na to repo (lub `CODEMAPS_PROJECT_ROOT`)
-2. Ustaw `syncGlobs` na ścieżki aplikacji (`src/**`, `app/**`, …)
-3. Poproś agenta (skill brownfield): mapa Level 1–2
-4. Włącz `npm run check:codemaps-sync` w CI tego repo (lub pre-commit)
+1. W Cursorze wklej prompt z [README — Prompt: włącz CodeMaps w projekcie](../README.md#prompt-włącz-codemaps-w-projekcie) (brownfield lub greenfield)
+2. Ustaw w UI CodeMaps `projectRoot` na to repo (lub `CODEMAPS_PROJECT_ROOT`)
+3. Upewnij się, że `syncGlobs` w `.codemaps/config.json` obejmuje ścieżki aplikacji
+4. Odpal Drift; włącz opcjonalnie `npm run check:codemaps-sync` w CI / pre-commit
 
 ---
 
@@ -50,11 +55,13 @@ Pytania przy review:
 Obowiązkowo przy feature / refaktorze / usuwaniu / bugfixie:
 
 1. Przeczytaj aktualny `.codemaps/architecture.json` (lub slice)
-2. Zaktualizuj mapę w **tym samym** change set co kod
-3. Bug znaleziony → `health: critical` + sensowny `codeRef`
-4. Bug naprawiony → `health: stable` (lub `warning` jeśli WIP)
-5. Usunięty moduł → usuń węzeł + krawędzie **albo** `status: deprecated`
-6. Nie przebudowuj całej mapy przy lokalnej zmianie
+2. Przy **większym** tasku rozważ drift (`npm run check:codemaps-drift`) zanim napiszesz dużo kodu
+3. Zaktualizuj mapę w **tym samym** change set co kod — **albo** napisz `codemaps: no arch change` przy kosmetyce
+4. Bug znaleziony → `health: critical` + sensowny `codeRef`
+5. Bug naprawiony → `health: stable` (lub `warning` jeśli WIP)
+6. Usunięty moduł → usuń węzeł + krawędzie **albo** `status: deprecated`
+7. Nie przebudowuj całej mapy przy lokalnej zmianie; nie reimplementuj sąsiadów z mapy
+8. Aktualizuj `purpose` / `description` gdy zmienia się sens lub stan tech kafelka
 
 Pełny playbook: [`.cursor/skills/codemaps-architect/SKILL.md`](../.cursor/skills/codemaps-architect/SKILL.md)  
 Kontrakt JSON: [`AGENTS.md`](../AGENTS.md)

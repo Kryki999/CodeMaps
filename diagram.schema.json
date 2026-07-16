@@ -78,7 +78,14 @@
           "type": "object",
           "properties": {
             "tech": { "type": "array", "items": { "type": "string" } },
-            "description": { "type": "string" },
+            "purpose": {
+              "type": "string",
+              "description": "Plain-language role: what this is for, what it does (non-technical)"
+            },
+            "description": {
+              "type": "string",
+              "description": "Technical notes for developers and agents"
+            },
             "status": {
               "type": "string",
               "enum": ["planned", "existing", "deprecated"],

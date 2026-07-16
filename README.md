@@ -74,7 +74,7 @@ CodeMaps to tablica w przeglądarce + agent w **Cursorze**. W apce nie ma czatu 
 |--------|--------|
 | Przeciągnij kafelek | Zmiana pozycji (zapis do JSON) |
 | Połącz uchwyty (handles) | Nowa krawędź między węzłami |
-| **Dwuklik** w kafelek | Expand — edycja nazwy, opisu, tech, deps, exports, codeRef, status, health |
+| **Dwuklik** w kafelek | Expand — edycja nazwy, purpose, notatek tech, tech, deps, exports, codeRef, status, health |
 | **Wejdź do środka** (gdy ma dzieci) | Drill-down na poziom niżej |
 | **Breadcrumbs** (System > …) | Powrót wyżej |
 | Esc w expanded | Anuluj edycję (nie wychodzi z poziomu) |
@@ -95,16 +95,16 @@ Kropka na rogu = **health** (`stable` / `warning` / `critical`).
 
 ### 4. Typowe scenariusze
 
-**A) Mam już kod — chcę mapę**
+**A) Mam już kod — chcę mapę (dowolne repo)**
 
-1. Ustaw `projectRoot` na to repo.
-2. W Cursorze: *„Zmapuj ten projekt do CodeMaps, Level 1–2, status existing + codeRef”*.
-3. Odśwież / poczekaj na hot-reload.
+1. Otwórz **to repo** w Cursorze (albo podaj absolutną ścieżkę w prompcie).
+2. Skopiuj prompt z sekcji [**Prompt: włącz CodeMaps w projekcie**](#prompt-włącz-codemaps-w-projekcie) → wklej w czat agenta.
+3. W appce CodeMaps: **Projekt** → wskaż folder projektu (**Wybierz…**) → Zapisz.
 4. Kliknij **Drift** — popraw broken / brakujące `codeRef`.
 
 **B) Nowy pomysł — najpierw mapa, potem kod**
 
-1. Poproś agenta o kafelki i krawędzie (albo dorysuj ręcznie).
+1. Użyj wariantu *greenfield* z tej samej sekcji promptów (albo dorysuj ręcznie).
 2. Dwuklik → **Prompt dla agenta** → wklej w Cursor (+ swoje wymagania).
 3. Agent koduje i aktualizuje mapę w tym samym change set.
 
@@ -112,6 +112,7 @@ Kropka na rogu = **health** (`stable` / `warning` / `critical`).
 
 1. Wystarczy czat w Cursorze: *„W Checkout zrób X; zaktualizuj mapę jeśli trzeba”*.
 2. Przycisk promptu z kafelka jest opcjonalny (gdy chcesz gęsty kontekst).
+3. Kosmetyka bez zmiany architektury → `codemaps: no arch change`.
 
 **D) Kontrola, czy mapa nie kłamie**
 
@@ -129,9 +130,76 @@ Kropka na rogu = **health** (`stable` / `warning` / `critical`).
 
 | Chcesz… | Dokument |
 |---------|----------|
+| **Prompt startowy do dowolnego projektu** | [README — Prompt: włącz CodeMaps](#prompt-włącz-codemaps-w-projekcie) |
 | Sync, CI, DoD dla leada | [`docs/SYNC.md`](docs/SYNC.md) |
 | Format JSON / reguły agenta | [`AGENTS.md`](AGENTS.md) |
 | Jak agent ma myśleć (flow A–E) | [`.cursor/skills/codemaps-architect/SKILL.md`](.cursor/skills/codemaps-architect/SKILL.md) |
+
+## Prompt: włącz CodeMaps w projekcie
+
+Skopiuj jeden z promptów poniżej do czatu Cursora w **mapowanym repo** (albo wskaż ścieżkę).  
+Agent powinien znać skill `codemaps-architect` (Flow B / A). Aplikację CodeMaps uruchamiasz osobno (`npm run dev` w repo CodeMaps) i podpinasz `projectRoot` na ten folder.
+
+### Brownfield — mam kod, zrób mapę (zalecane na start)
+
+```text
+Włącz CodeMaps w tym projekcie (brownfield / Flow B).
+
+Kontekst narzędzia:
+- CodeMaps to tablica architektury; źródło prawdy mapy = `.codemaps/architecture.json` w TYM repo.
+- Nie rysuj Mermaid/PlantUML jako mapy — tylko JSON CodeMaps (version "1.1", flat nodes + parentId).
+- Trzymaj się skillu codemaps-architect + kontraktu AGENTS.md (jeśli masz dostęp do repo CodeMaps / skilla).
+
+Zrób po kolei:
+1. Utwórz folder `.codemaps/` w rootcie tego projektu (jeśli brak).
+2. Utwórz `.codemaps/config.json`:
+   - "projectRoot": "."
+   - "diagramRelativePath": ".codemaps/architecture.json"
+   - "stackProfile": "next" LUB "react-native" (dopasuj do stacku)
+   - "syncGlobs": sensowne globy appki (np. ["app/**", "src/**", "components/**", "lib/**"])
+3. Przeskanuj repo lekko (manifesty, app/, features/, API, DB, zewnętrzne SDK) — nie mapuj każdego pliku.
+4. Napisz `.codemaps/architecture.json`:
+   - Level 1: kontenery / runtime / external (parentId: null)
+   - Level 2: główne moduły, na których nam zależy
+   - Level 3: TYLKO jeśli poproszę albo dla krytycznego hot-pathu
+   - Istniejący kod: status "existing" + codeRef do realnej ścieżki
+   - Planowane / stuby: status "planned", health "warning" gdy mock/scaffold
+   - Na każdym sensownym kafelku (zwłaszcza L1–L2):
+     - purpose = prostym językiem: po co to jest, za co odpowiada (zrozumiałe bez kodu)
+     - description = notatki techniczne (mock vs real, ograniczenia, wskazówki)
+   - tech, deps, exports gdzie mają sens
+   - Krawędzie tylko realne zależności (http, data-flow, dependency, …)
+5. Walidacja: unikalne kebab-case id, parentId/edges wskazują istniejące węzły, metadata.updatedAt = teraz.
+6. Na koniec krótko podsumuj: co zmapowałeś, gdzie leży plik, jaki stackProfile, co jest planned/warning.
+
+Potem człowiek w UI CodeMaps: Projekt → wybierz ten folder → Zapisz → Drift.
+```
+
+### Greenfield — najpierw mapa z koncepcji (mało / zero kodu)
+
+```text
+Narysuj architekturę CodeMaps z koncepcji (greenfield / Flow A).
+
+- Zapisz `.codemaps/architecture.json` (+ config jak wyżej) w wskazanym / bieżącym projekcie.
+- Tylko Level 1 na start (kontenery + realne krawędzie). Level 2 tylko jeśli poproszę.
+- status: planned; purpose (prosty język) + krótkie description (tech) + tech.
+- Bez Mermaid jako SSOT. Nie wymyślaj głębokiego drzewa Level 3.
+- Po mapie: zaproponuj kolejny krok (drill-down jednego kontenera LUB scaffold z kafelka).
+```
+
+### Po starcie — typowe follow-upy (skróty)
+
+```text
+Sprawdź drift CodeMaps (Flow E) i popraw mapę według findings — bez pełnego remapowania.
+```
+
+```text
+Wejdź w kafelek <id>, zrób <feature>; trzymaj zakres slice; zaktualizuj mapę w tym samym change set (albo napisz codemaps: no arch change).
+```
+
+```text
+Dwuklik → Prompt dla agenta z kafelka już wkleiłem poniżej. Zaimplementuj według Flow D.
+```
 
 ## Faza 3 — Diagram → kod
 
@@ -177,7 +245,8 @@ W aplikacji **nie ma** wbudowanego czatu AI. Agent w Cursorze edytuje JSON.
 
 Przykładowe prompty:
 
-- *„Zmapuj ten projekt do CodeMaps, Level 1–2, status existing + codeRef”*
+- **Onboarding dowolnego repo:** sekcja [Prompt: włącz CodeMaps w projekcie](#prompt-włącz-codemaps-w-projekcie)
+- *„Zmapuj ten projekt do CodeMaps, Level 1–2, status existing + codeRef”* (krótka forma)
 - *„Dodaj moduł Payments pod Backend i połącz z Stripe (external)”*
 - *„Zmieniając checkout, zaktualizuj też `.codemaps/architecture.json`”*
 - *Wklejony prompt z przycisku „Prompt dla agenta”* → Flow D (scaffold)

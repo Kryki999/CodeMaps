@@ -5,6 +5,7 @@ export interface ArchitectureNodeData extends Record<string, unknown> {
   label: string;
   nodeType: NodeType;
   tech?: string[];
+  purpose?: string;
   description?: string;
   status?: NodeStatus;
   health?: NodeHealth;
@@ -29,6 +30,7 @@ export function diagramNodeToFlowNode(
       label: node.label,
       nodeType: node.type,
       tech: node.data?.tech,
+      purpose: node.data?.purpose,
       description: node.data?.description,
       status: node.data?.status ?? "planned",
       health: node.data?.health ?? "stable",
@@ -60,6 +62,7 @@ export function flowNodesToDiagramNodes(
       position: flowNode.position,
       data: {
         tech: flowNode.data.tech,
+        purpose: flowNode.data.purpose,
         description: flowNode.data.description,
         status: flowNode.data.status,
         health: flowNode.data.health,

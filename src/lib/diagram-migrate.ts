@@ -66,6 +66,7 @@ function migrateNode(node: Record<string, unknown>): DiagramNode {
     position: node.position as DiagramNode["position"],
     data: {
       tech: data.tech as string[] | undefined,
+      purpose: data.purpose as string | undefined,
       description: data.description as string | undefined,
       status: data.status as NodeStatus | undefined,
       health: normalizeHealth(data.health),

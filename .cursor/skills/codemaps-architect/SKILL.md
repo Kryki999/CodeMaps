@@ -70,7 +70,10 @@ Then continue with Non-negotiables and the matching flow.
 - `data.status`: lifecycle — `planned` | `existing` | `deprecated`
 - `data.health`: stability — `stable` | `warning` | `critical` (use `critical` when you find a real bug in `codeRef`)
 
-**Living docs on the tile (short):** `description`, `tech`, `deps`, `exports`, `codeRef`.
+**Living docs on the tile (short):** `purpose` (plain language), `description` (technical), `tech`, `deps`, `exports`, `codeRef`.
+
+- **`purpose`:** what this is for, what it does, who it’s for — language a non-developer understands. Prefer this on Level 1–2.
+- **`description`:** technical notes (mocks vs real, constraints, impl hints). Do not duplicate `purpose`.
 
 ## Choose a flow
 
@@ -89,7 +92,7 @@ Then continue with Non-negotiables and the matching flow.
 1. Clarify stack only if missing (default: Next.js / React / TS / API / DB as needed).
 2. Draft **Level 1 only**: main containers + real edges (`http`, `data-flow`, `dependency`…).
 3. Write/replace `.codemaps/architecture.json` (`version: "1.1"`). Root nodes: `parentId: null`.
-4. Fill short `description` + `tech`; `status: planned`; `health: stable` unless known risk.
+4. Fill `purpose` (plain language) + short `description` (tech) + `tech`; `status: planned`; `health: stable` unless known risk.
 5. Stop. Ask if they want to drill into a specific container (Level 2) — don’t invent deep trees unprompted.
 
 ### Flow B — Brownfield (code → map)
@@ -99,7 +102,7 @@ Then continue with Non-negotiables and the matching flow.
 3. Level 1 from real deployable/runtime pieces; `status: existing` + `codeRef` to folders/entrypoints.
 4. Level 2 for major modules the user cares about (Auth, Dashboard, Payments…).
 5. Level 3 only for critical functions when asked or when debugging.
-6. Separate facts vs guesses in `description` if unsure; prefer `health: warning` over inventing structure.
+6. Put human intent in `purpose`; facts vs guesses / tech caveats in `description`. Prefer `health: warning` over inventing structure.
 7. Write JSON; validate IDs / parentIds / edges (see AGENTS checklist).
 
 ### Flow C — Update (patch existing map)
@@ -107,7 +110,7 @@ Then continue with Non-negotiables and the matching flow.
 1. **Read** current `.codemaps/architecture.json` first.
 2. Identify focus node id. Work on **slice**: focus + direct children + edges among them (or `GET /api/diagram/slice?nodeId=…` if app is running).
 3. Patch minimally: add/remove/update nodes & edges; preserve unrelated subtrees and positions.
-4. If implementing a feature in code: update code **and** the map in the **same** change set (atomic commit when user asks to commit).
+4. If implementing a feature in code: update code **and** the map in the **same** change set (atomic commit when user asks to commit) — **unless** it is cosmetic / no-arch (then `codemaps: no arch change`).
 5. Set `metadata.updatedAt` to now (ISO). Keep `version: "1.1"`.
 
 ### Flow D — Scaffold from map (diagram → code)
@@ -115,13 +118,13 @@ Then continue with Non-negotiables and the matching flow.
 Triggered when the user pastes a **CodeMaps — Scaffold z mapy** prompt (from the tile button) or asks to implement a node.
 
 1. Read `.codemaps/config.json` → `stackProfile` (`next` | `react-native`) and `projectRoot`.
-2. Use the prompt/slice focus node: `description`, `tech`, `deps`, `exports`, edges/neighbors.
-3. Implement in **projectRoot** using stack conventions:
+2. Use the prompt/slice focus node: `purpose`, `description`, `tech`, `deps`, `exports`, edges/neighbors.
+3. **Scope:** implement the focus (and its children if needed). Neighbors = integrate only — do not re-build Auth/DB/Stripe/etc. from scratch. Do not drive-by refactor unrelated map nodes.
+4. Implement in **projectRoot** using stack conventions:
    - **next:** App Router (`app/...`, `app/api/.../route.ts`, `lib/...`); DB in-repo if mapped; `external` = SDK + env.
    - **react-native:** features/screens (Expo `app/` or `src/features`); **no** mobile `app/api` — API is another map node; native SDKs for auth/payments.
-4. Do **not** re-implement neighbor tiles (Auth, DB, Stripe) from scratch — integrate.
-5. After code: patch `.codemaps/architecture.json` — set `codeRef`, `status: existing`, refresh `exports`/`deps` if needed; same change set as code.
-6. Follow [docs/SYNC.md](../../../docs/SYNC.md).
+5. After code: patch `.codemaps/architecture.json` when structure/behavior of the tile changed — `codeRef`, `status`, `purpose`, `description`, `exports`/`deps` as needed; same change set as code. Pure UI polish → `codemaps: no arch change`.
+6. Follow [docs/SYNC.md](../../../docs/SYNC.md). Optional: Flow E before big scaffolds if the map may be stale.
 
 User may add extra requirements under the pasted prompt — honor those.
 
@@ -135,16 +138,22 @@ User may add extra requirements under the pasted prompt — honor those.
 3. **Never** invent a full remap beside the report — patch via Flow C using findings as the checklist.
 4. Drift tools **do not write** `architecture.json`; you (the agent) apply the patch deliberately.
 5. Re-run drift to confirm blocking findings are gone.
+6. **Suggest** running E before large features when the user did not; do not block tiny tasks on drift.
 
 ## Sync with code (non-optional)
 
-Map drift kills the product. Always:
+Map drift kills the product. Rules:
 
-1. Same change set: code + `.codemaps/architecture.json`
+1. **Architecture changed** (new module, new boundary, new dependency, removed feature, mock→real): same change set → code + `.codemaps/architecture.json`
 2. Bug found → `health: critical` (+ `codeRef`); fixed → `stable`
 3. Deleted feature → remove node/edges or `status: deprecated`
-4. If architecture truly unchanged, say so explicitly (`codemaps: no arch change`)
-5. Human process + CI details: [docs/SYNC.md](../../../docs/SYNC.md)
+4. **Architecture unchanged** (copy, CSS, drobny bugfix w istniejącym pliku, rename lokalny bez nowej odpowiedzialności): **do not** churn the map — say explicitly `codemaps: no arch change`
+5. Keep `purpose` / `description` in sync when behavior or tech reality of a tile changes
+6. Human process + CI: [docs/SYNC.md](../../../docs/SYNC.md)
+
+### When to run Drift first (Flow E)
+
+Before a **larger** task (nowy moduł, podmiana mock→API, refaktor granic, „nie wiem czy mapa żywa”), run drift once, then implement. Skip for tiny local edits.
 
 ## Quality bar
 
@@ -152,7 +161,7 @@ Map drift kills the product. Always:
 - Every `parentId` / edge endpoint exists; no parent cycles.
 - Edges reflect real runtime/data dependencies — not “everything connected to everything”.
 - Cross-level edges may exist in JSON; canvas shows only same-level edges — that’s OK.
-- Polish language in labels/descriptions to match the user’s language (PL/EN).
+- Polish language in labels / `purpose` / descriptions to match the user’s language (PL/EN).
 
 ## Anti-patterns
 
@@ -161,6 +170,8 @@ Map drift kills the product. Always:
 - Drawing Mermaid “instead of” CodeMaps.
 - Changing all positions on every edit.
 - Replacing `status` with `health` or vice versa.
+- Updating the whole map for a one-line copy/CSS fix (use `codemaps: no arch change`).
+- Re-implementing neighbor tiles that already exist on the map.
 
 ## After editing
 

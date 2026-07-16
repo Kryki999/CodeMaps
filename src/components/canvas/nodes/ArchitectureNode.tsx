@@ -68,6 +68,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
   const isEditing = editingNodeId === id;
 
   const [label, setLabel] = useState(nodeData.label);
+  const [purpose, setPurpose] = useState(nodeData.purpose ?? "");
   const [description, setDescription] = useState(nodeData.description ?? "");
   const [tech, setTech] = useState((nodeData.tech ?? []).join(", "));
   const [statusValue, setStatusValue] = useState<NodeStatus>(status);
@@ -85,6 +86,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
   useEffect(() => {
     if (!isEditing) {
       setLabel(nodeData.label);
+      setPurpose(nodeData.purpose ?? "");
       setDescription(nodeData.description ?? "");
       setTech((nodeData.tech ?? []).join(", "));
       setStatusValue(nodeData.status ?? "planned");
@@ -95,6 +97,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
     }
   }, [
     nodeData.label,
+    nodeData.purpose,
     nodeData.description,
     nodeData.tech,
     nodeData.status,
@@ -118,6 +121,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
     try {
       await saveNodeEdit(id, {
         label,
+        purpose,
         description,
         tech,
         status: statusValue,
@@ -132,6 +136,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
   }, [
     id,
     label,
+    purpose,
     description,
     tech,
     statusValue,
@@ -175,7 +180,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
         e.preventDefault();
         void commitSave();
       }
-      if (e.key === "Enter" && e.target instanceof HTMLTextAreaElement && e.metaKey) {
+      if (e.key === "Enter" && e.target instanceof HTMLTextAreaElement && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         void commitSave();
       }
@@ -238,8 +243,8 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
       onKeyDown={handleKeyDown}
       className={`group relative rounded-lg border-2 bg-[#16213e] shadow-lg transition-all duration-200 ease-out ${
         isEditing
-          ? "nodrag nopan min-w-[300px] max-w-[340px] scale-[1.02] px-3.5 py-3 ring-2 ring-indigo-400 ring-offset-2 ring-offset-[#1a1a2e] shadow-indigo-500/25"
-          : `min-w-[200px] max-w-[260px] px-3 py-2.5 ${selected ? "shadow-indigo-500/30" : ""}`
+          ? "nodrag nopan min-w-[340px] max-w-[420px] scale-[1.02] px-3.5 py-3 ring-2 ring-indigo-400 ring-offset-2 ring-offset-[#1a1a2e] shadow-indigo-500/25"
+          : `min-w-[200px] max-w-[280px] px-3 py-2.5 ${selected ? "shadow-indigo-500/30" : ""}`
       }`}
       style={{ borderColor: isEditing ? "#818cf8" : colors.border }}
     >
@@ -321,6 +326,32 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
 
           <div>
             <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Po co to jest
+            </label>
+            <textarea
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              rows={5}
+              className="nodrag nopan nowheel max-h-52 min-h-[6.5rem] w-full resize-y rounded-md border border-slate-600/60 bg-[#1a1a2e] px-2.5 py-2 text-xs leading-relaxed text-slate-200 outline-none focus:border-indigo-400"
+              placeholder="Prostym językiem: do czego służy, za co odpowiada, co użytkownik z tego ma…"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Notatki techniczne
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={4}
+              className="nodrag nopan nowheel max-h-48 min-h-[5rem] w-full resize-y rounded-md border border-slate-600/60 bg-[#1a1a2e] px-2.5 py-2 text-xs leading-relaxed text-slate-300 outline-none focus:border-indigo-400"
+              placeholder="Ograniczenia, mock vs real, wskazówki dla programisty / agenta…"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">
               Technologie
             </label>
             <input
@@ -367,19 +398,6 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">
-              Opis
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="w-full resize-none rounded-md border border-slate-600/60 bg-[#1a1a2e] px-2 py-1 text-xs leading-snug text-slate-300 outline-none focus:border-indigo-400"
-              placeholder="Krótki opis roli komponentu..."
-            />
-          </div>
-
           {childrenCount > 0 && (
             <button
               type="button"
@@ -421,7 +439,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
           )}
 
           <p className="text-[10px] text-slate-500">
-            Enter zapisuje · Esc anuluje · Prompt → wklej w Cursor
+            ⌘/Ctrl+Enter zapisuje opis · Esc anuluje · Prompt → wklej w Cursor
           </p>
         </div>
       ) : (
@@ -454,10 +472,24 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
             </div>
           )}
 
-          {nodeData.description && (
-            <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-slate-400">
-              {nodeData.description}
-            </p>
+          {(nodeData.purpose || nodeData.description) && (
+            <div className="mt-1.5 space-y-1">
+              {nodeData.purpose && (
+                <p className="line-clamp-4 text-[11px] leading-relaxed text-slate-300">
+                  {nodeData.purpose}
+                </p>
+              )}
+              {!nodeData.purpose && nodeData.description && (
+                <p className="line-clamp-4 text-[11px] leading-relaxed text-slate-400">
+                  {nodeData.description}
+                </p>
+              )}
+              {nodeData.purpose && nodeData.description && (
+                <p className="line-clamp-2 text-[10px] leading-snug text-slate-500">
+                  {nodeData.description}
+                </p>
+              )}
+            </div>
           )}
 
           {externalEdgeCount > 0 && (

@@ -24,8 +24,10 @@ When the user asks about CodeMaps, architecture maps, C4, schematy, scaffold fro
 ## Hard rules (quick)
 
 - Flat nodes + `parentId`; omit `position` on new nodes
-- Dual fields: `status` (lifecycle) + `health` (stability)
+- Dual fields: `status` (lifecycle) + `health` (stability); also `purpose` (plain language) + `description` (tech notes)
 - Prefer context slice over full-file rewrites when updating one area
+- Cosmetic / no-arch edits: say `codemaps: no arch change` — do not churn the map
+- Larger features: consider Drift before coding; tile prompt = optional context pack
 - No Mermaid/PlantUML as source of truth; no side-panel docs
 - Keep map in sync with code — see [docs/SYNC.md](../../docs/SYNC.md)
 - Tile **Prompt dla agenta** = optional context pack; chat-only + reading JSON is also valid

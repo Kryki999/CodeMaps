@@ -21,6 +21,7 @@ export const ViewportSchema = z.object({
 
 export const NodeDataSchema = z.object({
   tech: z.array(z.string()).optional(),
+  purpose: z.string().optional(),
   description: z.string().optional(),
   status: z.enum(NODE_STATUSES).optional(),
   health: z.enum(NODE_HEALTHS).optional(),

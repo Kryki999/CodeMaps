@@ -5,6 +5,7 @@ import {
   Download,
   FilePlus,
   FolderCog,
+  FolderOpen,
   GitCompareArrows,
   Upload,
   Wifi,
@@ -48,6 +49,7 @@ export function ProjectToolbar() {
   const [stackProfile, setStackProfile] = useState<StackProfile>("next");
   const [configMeta, setConfigMeta] = useState<string>("");
   const [configSaving, setConfigSaving] = useState(false);
+  const [pickingFolder, setPickingFolder] = useState(false);
   const [showDriftDialog, setShowDriftDialog] = useState(false);
   const [driftLoading, setDriftLoading] = useState(false);
   const [driftReport, setDriftReport] = useState<DriftReport | null>(null);
@@ -142,6 +144,37 @@ export function ProjectToolbar() {
       setShowDriftDialog(false);
     } finally {
       setDriftLoading(false);
+    }
+  };
+
+  const pickProjectFolder = async () => {
+    setPickingFolder(true);
+    try {
+      const res = await fetch("/api/project/pick-folder", { method: "POST" });
+      const data = (await res.json()) as {
+        cancelled?: boolean;
+        path?: string;
+        hasArchitecture?: boolean;
+        diagramRelativePath?: string;
+        stackProfile?: StackProfile;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error ?? "Wybór folderu nie powiódł się");
+      if (data.cancelled || !data.path) return;
+
+      setProjectRoot(data.path);
+      if (data.diagramRelativePath) {
+        setDiagramRelativePath(data.diagramRelativePath);
+      }
+      if (data.stackProfile === "next" || data.stackProfile === "react-native") {
+        setStackProfile(data.stackProfile);
+      }
+      setConfigMeta(data.message ?? `Wybrano: ${data.path}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Błąd wyboru folderu");
+    } finally {
+      setPickingFolder(false);
     }
   };
 
@@ -257,17 +290,34 @@ export function ProjectToolbar() {
         title="Mapowany projekt"
       >
         <p className="mb-3 text-xs leading-relaxed text-slate-400">
-          Wskaż katalog projektu (lokalnie <code className="text-slate-300">.</code> albo
-          absolutną ścieżkę do zewnętrznego repo, np. Clubify). Mapa:{" "}
+          Wybierz folder projektu z dysku (zalecane) albo wpisz ścieżkę ręcznie.
+          Po zapisie wczyta się mapa z{" "}
           <code className="text-slate-300">.codemaps/architecture.json</code>.
         </p>
         <label className="block text-xs text-slate-400">projectRoot</label>
-        <input
-          value={projectRoot}
-          onChange={(e) => setProjectRoot(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-600 bg-[#1a1a2e] px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500"
-          placeholder="."
-        />
+        <div className="mt-1 flex gap-2">
+          <input
+            value={projectRoot}
+            onChange={(e) => setProjectRoot(e.target.value)}
+            className="min-w-0 flex-1 rounded-md border border-slate-600 bg-[#1a1a2e] px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500"
+            placeholder="."
+          />
+          <Button
+            variant="default"
+            disabled={pickingFolder}
+            onClick={() => void pickProjectFolder()}
+            title="Otwórz okno wyboru folderu"
+            className="shrink-0"
+          >
+            <FolderOpen className="h-4 w-4" />
+            {pickingFolder ? "Czekam…" : "Wybierz…"}
+          </Button>
+        </div>
+        {pickingFolder && (
+          <p className="mt-1 text-[10px] text-amber-300/90">
+            Okno systemu powinno być otwarte — wybierz folder i potwierdź (albo Anuluj).
+          </p>
+        )}
         <label className="mt-3 block text-xs text-slate-400">diagramRelativePath</label>
         <input
           value={diagramRelativePath}
