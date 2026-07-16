@@ -26,6 +26,11 @@ import { generateEdgeId } from "@/lib/diagram-history";
 import { diagramNodeToFlowNode, type ArchitectureNodeData } from "@/lib/flow-adapters";
 import { diagramEdgeToFlowEdge } from "@/lib/flow-edge-adapters";
 import type { ArchitectureEdgeData } from "@/lib/flow-edge-adapters";
+import {
+  countChildren,
+  countExternalConnections,
+  filterDiagramByParent,
+} from "@/lib/hierarchy";
 import { EdgeEditProvider } from "@/contexts/edge-edit-context";
 import { NodeEditProvider } from "@/contexts/node-edit-context";
 import { useDiagramHistory } from "@/hooks/useDiagramHistory";
@@ -34,8 +39,25 @@ import { useDiagramStore } from "@/store/diagram-store";
 import type { DiagramEdge } from "@/types/diagram";
 import type { Node } from "@xyflow/react";
 
+function toFlowNodes(
+  diagram: NonNullable<ReturnType<typeof useDiagramStore.getState>["diagram"]>,
+  activeParentId: string | null,
+) {
+  const { nodes, edges } = filterDiagramByParent(diagram, activeParentId);
+  return {
+    nodes: nodes.map((n) =>
+      diagramNodeToFlowNode(n, {
+        childrenCount: countChildren(diagram.nodes, n.id),
+        externalEdgeCount: countExternalConnections(diagram, n.id, activeParentId),
+      }),
+    ),
+    edges: edges.map((e) => diagramEdgeToFlowEdge(e)),
+  };
+}
+
 function CanvasInner() {
   const diagram = useDiagramStore((s) => s.diagram);
+  const activeParentId = useDiagramStore((s) => s.activeParentId);
   const isInteracting = useDiagramStore((s) => s.isInteracting);
   const isApplyingHistory = useDiagramStore((s) => s.isApplyingHistory);
   const editingNodeId = useDiagramStore((s) => s.editingNodeId);
@@ -45,18 +67,20 @@ function CanvasInner() {
   const { onNodeDragStart, onNodeDragStop, onViewportChange } = useDiagramPersist();
   const { setViewport, fitView } = useReactFlow();
   const [showMinimap, setShowMinimap] = useState(true);
-  const initialViewportSet = useRef(false);
   const lastSyncedAt = useRef<string | null>(null);
+  const lastParentRef = useRef<string | null | undefined>(undefined);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<ArchitectureNodeData>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge<ArchitectureEdgeData>>([]);
 
   const syncFromDiagram = useCallback(() => {
-    const current = useDiagramStore.getState().diagram;
+    const state = useDiagramStore.getState();
+    const current = state.diagram;
     if (!current) return;
     lastSyncedAt.current = current.metadata.updatedAt;
-    setNodes(current.nodes.map((n) => diagramNodeToFlowNode(n)));
-    setEdges(current.edges.map((e) => diagramEdgeToFlowEdge(e)));
+    const flow = toFlowNodes(current, state.activeParentId);
+    setNodes(flow.nodes);
+    setEdges(flow.edges);
   }, [setNodes, setEdges]);
 
   useDiagramHistory({ onHistoryApplied: syncFromDiagram });
@@ -74,21 +98,22 @@ function CanvasInner() {
     syncFromDiagram,
   ]);
 
+  // Re-filter canvas + restore viewport when drilling in/out
   useEffect(() => {
-    if (!diagram || initialViewportSet.current) return;
-    const { x, y, zoom } = diagram.viewport;
-    setViewport({ x, y, zoom }, { duration: 0 });
-    initialViewportSet.current = true;
-  }, [diagram, setViewport]);
+    if (!diagram) return;
+    if (lastParentRef.current === activeParentId) return;
+    lastParentRef.current = activeParentId;
 
-  const hasFitted = useRef(false);
-  useEffect(() => {
-    if (diagram && diagram.nodes.length > 0 && !hasFitted.current) {
-      hasFitted.current = true;
-      const timer = setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [diagram, fitView]);
+    const flow = toFlowNodes(diagram, activeParentId);
+    setNodes(flow.nodes);
+    setEdges(flow.edges);
+    lastSyncedAt.current = diagram.metadata.updatedAt;
+
+    const { x, y, zoom } = diagram.viewport;
+    setViewport({ x, y, zoom }, { duration: 280 });
+    const timer = setTimeout(() => fitView({ padding: 0.2, duration: 320 }), 40);
+    return () => clearTimeout(timer);
+  }, [activeParentId, diagram, setNodes, setEdges, setViewport, fitView]);
 
   const handleMoveEnd = useCallback(
     (_event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
@@ -98,20 +123,24 @@ function CanvasInner() {
   );
 
   const handleAutoLayout = useCallback(async () => {
-    if (!diagram) return;
+    const state = useDiagramStore.getState();
+    const current = state.diagram;
+    if (!current) return;
 
-    const laidOut = relayoutDiagram(diagram);
-    markAllNodesMoved(laidOut.nodes.map((n) => n.id));
+    const laidOut = relayoutDiagram(current, "TB", state.activeParentId);
+    const { nodes: levelNodes } = filterDiagramByParent(laidOut, state.activeParentId);
+    markAllNodesMoved(levelNodes.map((n) => n.id));
     lastSyncedAt.current = null;
-    setNodes(laidOut.nodes.map((n) => diagramNodeToFlowNode(n)));
+    const flow = toFlowNodes(laidOut, state.activeParentId);
+    setNodes(flow.nodes);
 
     const saved = await commitDiagram(laidOut);
     if (saved) {
       lastSyncedAt.current = saved.metadata.updatedAt;
-      setNodes(saved.nodes.map((n) => diagramNodeToFlowNode(n)));
+      setNodes(toFlowNodes(saved, state.activeParentId).nodes);
     }
     setTimeout(() => fitView({ padding: 0.2, duration: 400 }), 50);
-  }, [diagram, markAllNodesMoved, commitDiagram, setNodes, fitView]);
+  }, [markAllNodesMoved, commitDiagram, setNodes, fitView]);
 
   const handleNodesUpdate = useCallback(
     (updated: Node<ArchitectureNodeData>[]) => {
@@ -134,6 +163,7 @@ function CanvasInner() {
   const handleConnect = useCallback(
     (connection: Connection) => {
       const current = useDiagramStore.getState().diagram;
+      const parentId = useDiagramStore.getState().activeParentId;
       if (!current || !connection.source || !connection.target) return;
 
       if (connection.source === connection.target) return;
@@ -160,11 +190,11 @@ function CanvasInner() {
       };
 
       const updated = { ...current, edges: [...current.edges, newEdge] };
-      setEdges(updated.edges.map((e) => diagramEdgeToFlowEdge(e)));
+      setEdges(toFlowNodes(updated, parentId).edges);
 
       void commitDiagram(updated).then((saved) => {
         if (saved) {
-          setEdges(saved.edges.map((e) => diagramEdgeToFlowEdge(e)));
+          setEdges(toFlowNodes(saved, parentId).edges);
           lastSyncedAt.current = saved.metadata.updatedAt;
         }
       });

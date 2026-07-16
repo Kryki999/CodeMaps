@@ -2,12 +2,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://codemaps.local/diagram.schema.json",
   "title": "CodeMaps Diagram",
-  "description": "Schema for CodeMaps architecture diagrams edited by Cursor agents",
+  "description": "Schema for CodeMaps architecture diagrams edited by Cursor agents (v1.1 — C4 nesting)",
   "type": "object",
   "required": ["version", "metadata", "viewport", "nodes", "edges"],
   "properties": {
     "$schema": { "type": "string" },
-    "version": { "type": "string", "const": "1.0" },
+    "version": { "type": "string", "enum": ["1.0", "1.1"] },
     "metadata": {
       "type": "object",
       "required": ["name", "createdAt", "updatedAt"],
@@ -25,6 +25,18 @@
         "x": { "type": "number" },
         "y": { "type": "number" },
         "zoom": { "type": "number", "minimum": 0.1, "maximum": 4 }
+      }
+    },
+    "viewportsByParent": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["x", "y", "zoom"],
+        "properties": {
+          "x": { "type": "number" },
+          "y": { "type": "number" },
+          "zoom": { "type": "number", "minimum": 0.1, "maximum": 4 }
+        }
       }
     },
     "nodes": {
@@ -51,6 +63,10 @@
           "enum": ["service", "database", "component", "queue", "cache", "external", "group"]
         },
         "label": { "type": "string", "minLength": 1 },
+        "parentId": {
+          "type": ["string", "null"],
+          "description": "Parent node id for C4 nesting; null/omitted = root level"
+        },
         "position": {
           "type": "object",
           "properties": {
@@ -63,8 +79,32 @@
           "properties": {
             "tech": { "type": "array", "items": { "type": "string" } },
             "description": { "type": "string" },
-            "status": { "type": "string", "enum": ["planned", "existing", "deprecated"] },
-            "codeRef": { "type": ["string", "null"], "description": "Path to source file in repo" }
+            "status": {
+              "type": "string",
+              "enum": ["planned", "existing", "deprecated"],
+              "description": "Lifecycle status"
+            },
+            "health": {
+              "type": "string",
+              "enum": ["stable", "warning", "critical"],
+              "description": "Runtime / audit health"
+            },
+            "codeRef": { "type": ["string", "null"], "description": "Path to source file in repo" },
+            "exports": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Important functions / exported types"
+            },
+            "deps": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Key libraries / dependencies"
+            },
+            "depthHint": {
+              "type": "integer",
+              "enum": [1, 2, 3],
+              "description": "Optional C4 depth hint for agents"
+            }
           }
         }
       }
@@ -84,7 +124,10 @@
           "enum": ["http", "websocket", "event", "dependency", "data-flow"]
         },
         "label": { "type": "string" },
-        "animated": { "type": "boolean" }
+        "animated": { "type": "boolean" },
+        "dashed": { "type": "boolean" },
+        "sourceHandle": { "type": "string" },
+        "targetHandle": { "type": "string" }
       }
     }
   }

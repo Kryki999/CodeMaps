@@ -1,32 +1,31 @@
 ---
-description: Edit CodeMaps architecture diagrams when the user asks about system design, architecture, schemas, or visual diagrams.
+description: >-
+  CodeMaps orientation and diagram editing (C4, living docs, Phase 3 prompts).
+  New agents: read skill First Contact first.
 globs:
-  - diagrams/**
+  - .codemaps/**
   - diagram.schema.json
+  - diagrams/examples/**
+  - AGENTS.md
+  - README.md
+  - docs/SYNC.md
+alwaysApply: false
 ---
 
 # CodeMaps Diagram Editing
 
-When the user asks to draw, update, split, or visualize a system architecture, edit `diagrams/current.json`.
+When the user asks about CodeMaps, architecture maps, C4, schematy, scaffold from a tile, or how prompts/skills work:
 
-## Rules
+1. **First:** open the skill **codemaps-architect** and follow **First Contact** (orient: map vs skill vs tile prompt vs chat).
+2. Then follow the matching flow (A–D) in that skill.
+3. Edit **`.codemaps/architecture.json`** only (never legacy `diagrams/current.json`).
+4. Respect format rules in [AGENTS.md](../../AGENTS.md) and [diagram.schema.json](../../diagram.schema.json).
 
-1. Always read `diagrams/current.json` before editing
-2. Validate against `diagram.schema.json`
-3. Use unique kebab-case IDs for nodes and edges
-4. New nodes: omit `position` (auto-layout)
-5. Do not change positions of existing nodes unless asked
-6. Update `metadata.updatedAt` to current ISO timestamp on every save
-7. Ensure all edge source/target reference valid node IDs
+## Hard rules (quick)
 
-## Node types
-
-`service` | `database` | `component` | `queue` | `cache` | `external` | `group`
-
-## Edge types
-
-`http` | `websocket` | `event` | `dependency` | `data-flow`
-
-## Full documentation
-
-See [AGENTS.md](AGENTS.md) for examples and validation checklist.
+- Flat nodes + `parentId`; omit `position` on new nodes
+- Dual fields: `status` (lifecycle) + `health` (stability)
+- Prefer context slice over full-file rewrites when updating one area
+- No Mermaid/PlantUML as source of truth; no side-panel docs
+- Keep map in sync with code — see [docs/SYNC.md](../../docs/SYNC.md)
+- Tile **Prompt dla agenta** = optional context pack; chat-only + reading JSON is also valid

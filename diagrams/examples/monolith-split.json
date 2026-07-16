@@ -1,72 +1,88 @@
 {
-  "$schema": "./diagram.schema.json",
-  "version": "1.0",
+  "$schema": "../../diagram.schema.json",
+  "version": "1.1",
   "metadata": {
     "name": "Monolit → Mikroserwisy",
-    "description": "Przykładowy diagram rozbicia monolitu na frontend, backend i bazę danych",
+    "description": "Przykładowy diagram rozbicia monolitu (v1.1, flat + parentId)",
     "createdAt": "2026-07-14T12:00:00.000Z",
-    "updatedAt": "2026-07-14T12:00:00.000Z"
+    "updatedAt": "2026-07-15T21:30:00.000Z"
   },
   "viewport": { "x": 0, "y": 0, "zoom": 1 },
+  "viewportsByParent": {
+    "__root__": { "x": 0, "y": 0, "zoom": 1 }
+  },
   "nodes": [
     {
       "id": "frontend",
       "type": "service",
       "label": "Frontend",
+      "parentId": null,
       "position": { "x": 100, "y": 80 },
       "data": {
         "tech": ["Next.js", "React"],
         "description": "Warstwa prezentacji — UI i routing",
         "status": "planned",
-        "codeRef": null
+        "health": "stable",
+        "codeRef": null,
+        "depthHint": 1
       }
     },
     {
       "id": "backend",
       "type": "service",
       "label": "Backend API",
+      "parentId": null,
       "position": { "x": 100, "y": 280 },
       "data": {
         "tech": ["Node.js", "Express"],
         "description": "Logika biznesowa i endpointy REST",
         "status": "planned",
-        "codeRef": null
+        "health": "stable",
+        "codeRef": null,
+        "depthHint": 1
       }
     },
     {
       "id": "database",
       "type": "database",
       "label": "PostgreSQL",
+      "parentId": null,
       "position": { "x": 100, "y": 480 },
       "data": {
         "tech": ["PostgreSQL"],
         "description": "Relacyjna baza danych",
         "status": "planned",
-        "codeRef": null
+        "health": "stable",
+        "codeRef": null,
+        "depthHint": 1
       }
     },
     {
       "id": "auth-service",
       "type": "component",
       "label": "Auth Module",
-      "position": { "x": 400, "y": 280 },
+      "parentId": "backend",
       "data": {
         "tech": ["JWT", "OAuth"],
         "description": "Moduł uwierzytelniania użytkowników",
         "status": "planned",
-        "codeRef": null
+        "health": "warning",
+        "codeRef": null,
+        "depthHint": 2
       }
     },
     {
       "id": "redis",
       "type": "cache",
       "label": "Redis",
-      "position": { "x": 400, "y": 480 },
+      "parentId": "backend",
       "data": {
         "tech": ["Redis"],
         "description": "Cache sesji i rate limiting",
         "status": "planned",
-        "codeRef": null
+        "health": "stable",
+        "codeRef": null,
+        "depthHint": 2
       }
     }
   ],
@@ -88,19 +104,11 @@
       "animated": false
     },
     {
-      "id": "be-auth",
-      "source": "backend",
-      "target": "auth-service",
-      "type": "dependency",
-      "label": "uses",
-      "animated": false
-    },
-    {
-      "id": "be-redis",
-      "source": "backend",
+      "id": "be-auth-redis",
+      "source": "auth-service",
       "target": "redis",
       "type": "data-flow",
-      "label": "cache read/write",
+      "label": "session cache",
       "animated": true
     }
   ]

@@ -1,20 +1,23 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { DIAGRAM_FILE_PATH, DIAGRAM_VERSION } from "./constants";
+import { DIAGRAM_VERSION } from "./constants";
+import { resolveDiagramFilePath } from "./codemaps-path";
+import { migrateDiagram } from "./diagram-migrate";
 import {
   createEmptyDiagram,
   parseDiagram,
-  validateDiagram,
   type ValidatedDiagram,
 } from "./schema";
 import type { Diagram } from "@/types/diagram";
 
-export function getDiagramFilePath(): string {
-  return path.join(/* turbopackIgnore: true */ process.cwd(), DIAGRAM_FILE_PATH);
+export { migrateDiagram } from "./diagram-migrate";
+
+export async function getDiagramFilePath(): Promise<string> {
+  return resolveDiagramFilePath();
 }
 
 export async function readDiagramFile(): Promise<ValidatedDiagram | null> {
-  const filePath = getDiagramFilePath();
+  const filePath = await getDiagramFilePath();
 
   try {
     const raw = await fs.readFile(filePath, "utf-8");
@@ -30,7 +33,7 @@ export async function readDiagramFile(): Promise<ValidatedDiagram | null> {
 }
 
 export async function writeDiagramFile(diagram: Diagram): Promise<ValidatedDiagram> {
-  const filePath = getDiagramFilePath();
+  const filePath = await getDiagramFilePath();
   const dir = path.dirname(filePath);
 
   await fs.mkdir(dir, { recursive: true });
@@ -57,13 +60,4 @@ export async function ensureDiagramFile(): Promise<ValidatedDiagram> {
 
   const empty = createEmptyDiagram();
   return writeDiagramFile(empty);
-}
-
-export function migrateDiagram(data: unknown): ValidatedDiagram {
-  const result = validateDiagram(data);
-  if (result.success) return result.data;
-
-  throw new Error(
-    `Invalid diagram: ${result.error.issues.map((i) => i.message).join("; ")}`,
-  );
 }

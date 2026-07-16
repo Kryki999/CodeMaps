@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { DIAGRAM_VERSION, NODE_TYPES, EDGE_TYPES, NODE_STATUSES } from "./constants";
+import {
+  DIAGRAM_VERSION,
+  NODE_TYPES,
+  EDGE_TYPES,
+  NODE_STATUSES,
+  NODE_HEALTHS,
+  ROOT_PARENT_KEY,
+} from "./constants";
 
 export const PositionSchema = z.object({
   x: z.number(),
@@ -16,7 +23,11 @@ export const NodeDataSchema = z.object({
   tech: z.array(z.string()).optional(),
   description: z.string().optional(),
   status: z.enum(NODE_STATUSES).optional(),
+  health: z.enum(NODE_HEALTHS).optional(),
   codeRef: z.string().nullable().optional(),
+  exports: z.array(z.string()).optional(),
+  deps: z.array(z.string()).optional(),
+  depthHint: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
 });
 
 export const DiagramNodeSchema = z.object({
@@ -26,6 +37,7 @@ export const DiagramNodeSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Node id must be kebab-case"),
   type: z.enum(NODE_TYPES),
   label: z.string().min(1),
+  parentId: z.string().nullable().optional(),
   position: PositionSchema.optional(),
   data: NodeDataSchema.optional(),
 });
@@ -58,6 +70,7 @@ export const DiagramSchema = z
     version: z.string(),
     metadata: DiagramMetadataSchema,
     viewport: ViewportSchema,
+    viewportsByParent: z.record(z.string(), ViewportSchema).optional(),
     nodes: z.array(DiagramNodeSchema),
     edges: z.array(DiagramEdgeSchema),
   })
@@ -72,6 +85,46 @@ export const DiagramSchema = z
         });
       }
       nodeIds.add(node.id);
+    }
+
+    for (const node of diagram.nodes) {
+      if (node.parentId == null || node.parentId === "") continue;
+      if (node.parentId === node.id) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Node '${node.id}' cannot be its own parent`,
+          path: ["nodes"],
+        });
+        continue;
+      }
+      if (!nodeIds.has(node.parentId)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Node '${node.id}' references unknown parent '${node.parentId}'`,
+          path: ["nodes"],
+        });
+      }
+    }
+
+    // Detect parent cycles
+    const parentMap = new Map(
+      diagram.nodes.map((n) => [n.id, n.parentId ?? null] as const),
+    );
+    for (const node of diagram.nodes) {
+      const seen = new Set<string>();
+      let current: string | null = node.id;
+      while (current) {
+        if (seen.has(current)) {
+          ctx.addIssue({
+            code: "custom",
+            message: `Parent cycle detected involving node '${node.id}'`,
+            path: ["nodes"],
+          });
+          break;
+        }
+        seen.add(current);
+        current = parentMap.get(current) ?? null;
+      }
     }
 
     const edgeIds = new Set<string>();
@@ -104,6 +157,7 @@ export const DiagramSchema = z
 
 export function createEmptyDiagram(name = "Nowy projekt"): z.infer<typeof DiagramSchema> {
   const now = new Date().toISOString();
+  const viewport = { x: 0, y: 0, zoom: 1 };
   return {
     version: DIAGRAM_VERSION,
     metadata: {
@@ -112,7 +166,8 @@ export function createEmptyDiagram(name = "Nowy projekt"): z.infer<typeof Diagra
       createdAt: now,
       updatedAt: now,
     },
-    viewport: { x: 0, y: 0, zoom: 1 },
+    viewport,
+    viewportsByParent: { [ROOT_PARENT_KEY]: viewport },
     nodes: [],
     edges: [],
   };

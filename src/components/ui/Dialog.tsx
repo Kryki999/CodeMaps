@@ -8,9 +8,11 @@ interface DialogProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /** Extra classes for the dialog element (e.g. max-w-2xl) */
+  className?: string;
 }
 
-export function Dialog({ open, onClose, title, children }: DialogProps) {
+export function Dialog({ open, onClose, title, children, className = "" }: DialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export function Dialog({ open, onClose, title, children }: DialogProps) {
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      className="fixed inset-0 z-50 m-auto w-full max-w-md rounded-lg border border-slate-700 bg-[#16213e] p-0 text-slate-100 shadow-xl backdrop:bg-black/60"
+      className={`fixed inset-0 z-50 m-auto w-full max-w-md rounded-lg border border-slate-700 bg-[#16213e] p-0 text-slate-100 shadow-xl backdrop:bg-black/60 ${className}`}
     >
       <div className="border-b border-slate-700 px-4 py-3">
         <h2 className="text-sm font-semibold">{title}</h2>

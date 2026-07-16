@@ -8,8 +8,13 @@ import {
   type ReactNode,
 } from "react";
 import { diagramNodeToFlowNode } from "@/lib/flow-adapters";
+import {
+  countChildren,
+  countExternalConnections,
+  filterDiagramByParent,
+} from "@/lib/hierarchy";
 import { useDiagramStore } from "@/store/diagram-store";
-import type { Diagram } from "@/types/diagram";
+import type { Diagram, NodeHealth, NodeStatus } from "@/types/diagram";
 import type { Node } from "@xyflow/react";
 import type { ArchitectureNodeData } from "@/lib/flow-adapters";
 
@@ -17,6 +22,11 @@ export interface NodeEditValues {
   label: string;
   description: string;
   tech: string;
+  status: NodeStatus;
+  health: NodeHealth;
+  deps: string;
+  exports: string;
+  codeRef: string;
 }
 
 interface NodeEditContextValue {
@@ -24,9 +34,28 @@ interface NodeEditContextValue {
   startEditing: (nodeId: string) => void;
   cancelEditing: () => void;
   saveNodeEdit: (nodeId: string, values: NodeEditValues) => Promise<void>;
+  enterNode: (nodeId: string) => void;
 }
 
 const NodeEditContext = createContext<NodeEditContextValue | null>(null);
+
+function splitList(value: string): string[] | undefined {
+  const list = value
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  return list.length > 0 ? list : undefined;
+}
+
+function mapVisibleFlowNodes(diagram: Diagram, activeParentId: string | null) {
+  const { nodes } = filterDiagramByParent(diagram, activeParentId);
+  return nodes.map((n) =>
+    diagramNodeToFlowNode(n, {
+      childrenCount: countChildren(diagram.nodes, n.id),
+      externalEdgeCount: countExternalConnections(diagram, n.id, activeParentId),
+    }),
+  );
+}
 
 interface NodeEditProviderProps {
   children: ReactNode;
@@ -45,6 +74,7 @@ export function NodeEditProvider({
   const markLocalWrite = useDiagramStore((s) => s.markLocalWrite);
   const commitDiagram = useDiagramStore((s) => s.commitDiagram);
   const setError = useDiagramStore((s) => s.setError);
+  const drillInto = useDiagramStore((s) => s.drillInto);
 
   const startEditing = useCallback(
     (nodeId: string) => {
@@ -60,9 +90,19 @@ export function NodeEditProvider({
     setInteracting(false);
   }, [setEditingNodeId, setInteracting]);
 
+  const enterNode = useCallback(
+    (nodeId: string) => {
+      setEditingNodeId(null);
+      setInteracting(false);
+      drillInto(nodeId);
+    },
+    [drillInto, setEditingNodeId, setInteracting],
+  );
+
   const saveNodeEdit = useCallback(
     async (nodeId: string, values: NodeEditValues) => {
       const current = useDiagramStore.getState().diagram;
+      const activeParentId = useDiagramStore.getState().activeParentId;
       if (!current) {
         cancelEditing();
         return;
@@ -74,11 +114,6 @@ export function NodeEditProvider({
         return;
       }
 
-      const techList = values.tech
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
-
       const updatedNodes = current.nodes.map((node) =>
         node.id === nodeId
           ? {
@@ -87,19 +122,24 @@ export function NodeEditProvider({
               data: {
                 ...node.data,
                 description: values.description.trim() || undefined,
-                tech: techList.length > 0 ? techList : undefined,
+                tech: splitList(values.tech),
+                status: values.status,
+                health: values.health,
+                deps: splitList(values.deps),
+                exports: splitList(values.exports),
+                codeRef: values.codeRef.trim() || null,
               },
             }
           : node,
       );
 
       const updated: Diagram = { ...current, nodes: updatedNodes };
-      onNodesUpdate(updatedNodes.map((n) => diagramNodeToFlowNode(n)));
+      onNodesUpdate(mapVisibleFlowNodes(updated, activeParentId));
 
       try {
         const saved = await commitDiagram(updated);
         if (saved) {
-          onNodesUpdate(saved.nodes.map((n) => diagramNodeToFlowNode(n)));
+          onNodesUpdate(mapVisibleFlowNodes(saved, activeParentId));
           onSyncRevisionBump();
         }
       } catch {
@@ -121,8 +161,14 @@ export function NodeEditProvider({
   );
 
   const value = useMemo(
-    () => ({ editingNodeId, startEditing, cancelEditing, saveNodeEdit }),
-    [editingNodeId, startEditing, cancelEditing, saveNodeEdit],
+    () => ({
+      editingNodeId,
+      startEditing,
+      cancelEditing,
+      saveNodeEdit,
+      enterNode,
+    }),
+    [editingNodeId, startEditing, cancelEditing, saveNodeEdit, enterNode],
   );
 
   return <NodeEditContext.Provider value={value}>{children}</NodeEditContext.Provider>;

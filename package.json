@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check:codemaps-sync": "node scripts/check-codemaps-sync.mjs",
+    "check:codemaps-drift": "npx --yes tsx scripts/check-codemaps-drift.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",

@@ -1,0 +1,296 @@
+{
+  "$schema": "../diagram.schema.json",
+  "version": "1.1",
+  "metadata": {
+    "name": "Monolit → Mikroserwisy",
+    "description": "Przykładowy diagram C4 — root + zagnieżdżone komponenty",
+    "createdAt": "2026-07-14T12:00:00.000Z",
+    "updatedAt": "2026-07-16T10:12:19.771Z"
+  },
+  "viewport": {
+    "x": 14.254287743817088,
+    "y": 131.49695511337453,
+    "zoom": 0.6240875912408766
+  },
+  "viewportsByParent": {
+    "__root__": {
+      "x": 14.254287743817088,
+      "y": 131.49695511337453,
+      "zoom": 0.6240875912408766
+    },
+    "frontend": {
+      "x": 273.5802732487312,
+      "y": 86.33475709350506,
+      "zoom": 0.9035083552462064
+    },
+    "auth-ui": {
+      "x": 100.85816600134609,
+      "y": 111.91441876373892,
+      "zoom": 1.148698354997035
+    },
+    "backend": {
+      "x": 263.1838728848071,
+      "y": 169.35251255022015,
+      "zoom": 0.5557017973775917
+    }
+  },
+  "nodes": [
+    {
+      "id": "frontend",
+      "type": "service",
+      "label": "Frontend",
+      "parentId": null,
+      "position": {
+        "x": 80,
+        "y": 208
+      },
+      "data": {
+        "tech": [
+          "Next.js",
+          "React"
+        ],
+        "description": "Warstwa prezentacji — UI i routing",
+        "status": "existing",
+        "health": "stable",
+        "codeRef": "src/app",
+        "exports": [
+          "RootLayout",
+          "HomePage"
+        ],
+        "deps": [
+          "next",
+          "react",
+          "tailwindcss"
+        ],
+        "depthHint": 1
+      }
+    },
+    {
+      "id": "backend",
+      "type": "service",
+      "label": "Backend API",
+      "parentId": null,
+      "position": {
+        "x": 416,
+        "y": 496
+      },
+      "data": {
+        "tech": [
+          "Node.js",
+          "Express"
+        ],
+        "description": "Logika biznesowa i endpointy REST",
+        "status": "planned",
+        "health": "warning",
+        "codeRef": null,
+        "exports": [
+          "createApp",
+          "router"
+        ],
+        "deps": [
+          "express",
+          "zod"
+        ],
+        "depthHint": 1
+      }
+    },
+    {
+      "id": "database",
+      "type": "database",
+      "label": "PostgreSQL",
+      "parentId": null,
+      "position": {
+        "x": 976,
+        "y": 384
+      },
+      "data": {
+        "tech": [
+          "PostgreSQL"
+        ],
+        "description": "Relacyjna baza danych",
+        "status": "planned",
+        "health": "stable",
+        "codeRef": null,
+        "depthHint": 1
+      }
+    },
+    {
+      "id": "api-gateway",
+      "type": "service",
+      "label": "API Gateway",
+      "parentId": null,
+      "position": {
+        "x": 768,
+        "y": 0
+      },
+      "data": {
+        "tech": [
+          "Kong"
+        ],
+        "description": "Wejście ruchu HTTP",
+        "status": "planned",
+        "health": "stable",
+        "codeRef": null,
+        "depthHint": 1
+      }
+    },
+    {
+      "id": "auth-ui",
+      "type": "group",
+      "label": "Auth",
+      "parentId": "frontend",
+      "position": {
+        "x": -160,
+        "y": 16
+      },
+      "data": {
+        "tech": [
+          "React"
+        ],
+        "description": "Ekrany i flow logowania",
+        "status": "planned",
+        "health": "warning",
+        "codeRef": null,
+        "exports": [
+          "LoginForm",
+          "AuthProvider"
+        ],
+        "deps": [
+          "react-hook-form"
+        ],
+        "depthHint": 2
+      }
+    },
+    {
+      "id": "dashboard-ui",
+      "type": "group",
+      "label": "Dashboard",
+      "parentId": "frontend",
+      "position": {
+        "x": 48,
+        "y": 272
+      },
+      "data": {
+        "description": "Główny panel użytkownika",
+        "status": "planned",
+        "health": "stable",
+        "codeRef": null,
+        "depthHint": 2
+      }
+    },
+    {
+      "id": "handle-login",
+      "type": "component",
+      "label": "handleLogin",
+      "parentId": "auth-ui",
+      "position": {
+        "x": 48,
+        "y": 48
+      },
+      "data": {
+        "description": "Obsługa submit formularza logowania",
+        "status": "planned",
+        "health": "critical",
+        "codeRef": "src/features/auth/handleLogin.ts",
+        "exports": [
+          "handleLogin"
+        ],
+        "depthHint": 3
+      }
+    },
+    {
+      "id": "auth-service",
+      "type": "component",
+      "label": "Auth Module",
+      "parentId": "backend",
+      "position": {
+        "x": 48,
+        "y": 48
+      },
+      "data": {
+        "tech": [
+          "JWT",
+          "OAuth"
+        ],
+        "description": "Moduł uwierzytelniania użytkowników",
+        "status": "planned",
+        "health": "warning",
+        "codeRef": null,
+        "exports": [
+          "verifyToken",
+          "issueSession"
+        ],
+        "depthHint": 2
+      }
+    },
+    {
+      "id": "redis",
+      "type": "cache",
+      "label": "Redis",
+      "parentId": "backend",
+      "position": {
+        "x": 48,
+        "y": 272
+      },
+      "data": {
+        "tech": [
+          "Redis"
+        ],
+        "description": "Cache sesji i rate limiting",
+        "status": "planned",
+        "health": "stable",
+        "codeRef": null,
+        "depthHint": 2
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "fe-be",
+      "source": "frontend",
+      "target": "backend",
+      "type": "http",
+      "label": "REST API",
+      "animated": false
+    },
+    {
+      "id": "be-db",
+      "source": "backend",
+      "target": "database",
+      "type": "data-flow",
+      "label": "SQL queries",
+      "animated": false
+    },
+    {
+      "id": "gw-fe",
+      "source": "api-gateway",
+      "target": "frontend",
+      "type": "http",
+      "label": "routes",
+      "animated": false
+    },
+    {
+      "id": "auth-ui-dashboard",
+      "source": "auth-ui",
+      "target": "dashboard-ui",
+      "type": "dependency",
+      "label": "redirect after login"
+    },
+    {
+      "id": "be-auth",
+      "source": "auth-service",
+      "target": "redis",
+      "type": "data-flow",
+      "label": "session cache",
+      "animated": true
+    },
+    {
+      "id": "auth-ui-to-auth-service",
+      "source": "auth-ui",
+      "target": "auth-service",
+      "type": "http",
+      "label": "login API",
+      "dashed": true
+    }
+  ]
+}

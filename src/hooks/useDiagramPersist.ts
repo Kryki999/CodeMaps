@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import type { Node, OnNodeDrag } from "@xyflow/react";
 import { CANVAS_CONFIG } from "@/lib/constants";
 import type { ArchitectureNodeData } from "@/lib/flow-adapters";
+import { withViewportForParent } from "@/lib/hierarchy";
 import { useDiagramStore } from "@/store/diagram-store";
 import type { Diagram } from "@/types/diagram";
 
@@ -65,7 +66,8 @@ export function useDiagramPersist() {
       const current = diagramRef.current;
       if (!current) return;
 
-      const updated: Diagram = { ...current, viewport };
+      const activeParentId = useDiagramStore.getState().activeParentId;
+      const updated = withViewportForParent(current, activeParentId, viewport);
       persistDebounced(updated);
     },
     [persistDebounced],

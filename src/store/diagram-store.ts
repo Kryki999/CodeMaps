@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { CANVAS_CONFIG } from "@/lib/constants";
 import { saveDiagramToApi } from "@/lib/diagram-api";
 import { cloneDiagram, MAX_HISTORY_SIZE } from "@/lib/diagram-history";
-import type { Diagram } from "@/types/diagram";
+import { getViewportForParent, withViewportForParent } from "@/lib/hierarchy";
+import type { Diagram, Viewport } from "@/types/diagram";
 
 interface DiagramStore {
   diagram: Diagram | null;
@@ -14,6 +15,8 @@ interface DiagramStore {
   isInteracting: boolean;
   editingNodeId: string | null;
   editingEdgeId: string | null;
+  /** null = root C4 level */
+  activeParentId: string | null;
   historyPast: Diagram[];
   historyFuture: Diagram[];
   isApplyingHistory: boolean;
@@ -25,6 +28,9 @@ interface DiagramStore {
   setInteracting: (interacting: boolean) => void;
   setEditingNodeId: (nodeId: string | null) => void;
   setEditingEdgeId: (edgeId: string | null) => void;
+  setActiveParentId: (parentId: string | null) => void;
+  drillInto: (nodeId: string) => void;
+  navigateToParent: (parentId: string | null) => void;
   markNodeMoved: (nodeId: string) => void;
   markAllNodesMoved: (nodeIds: string[]) => void;
   clearUserMovedNodes: () => void;
@@ -40,8 +46,16 @@ interface DiagramStore {
   canUndo: () => boolean;
   canRedo: () => boolean;
   clearHistory: () => void;
-  updateViewport: (viewport: Diagram["viewport"]) => void;
+  updateViewport: (viewport: Viewport) => void;
   updateMetadataName: (name: string) => void;
+}
+
+function persistLevelViewport(
+  diagram: Diagram,
+  activeParentId: string | null,
+  viewport: Viewport,
+): Diagram {
+  return withViewportForParent(diagram, activeParentId, viewport);
 }
 
 export const useDiagramStore = create<DiagramStore>((set, get) => ({
@@ -54,6 +68,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   isInteracting: false,
   editingNodeId: null,
   editingEdgeId: null,
+  activeParentId: null,
   historyPast: [],
   historyFuture: [],
   isApplyingHistory: false,
@@ -65,6 +80,44 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   setInteracting: (isInteracting) => set({ isInteracting }),
   setEditingNodeId: (editingNodeId) => set({ editingNodeId }),
   setEditingEdgeId: (editingEdgeId) => set({ editingEdgeId }),
+
+  setActiveParentId: (activeParentId) => set({ activeParentId }),
+
+  drillInto: (nodeId) => {
+    const { diagram, activeParentId, setEditingNodeId, setInteracting } = get();
+    if (!diagram) return;
+
+    const currentViewport = diagram.viewport;
+    const saved = persistLevelViewport(diagram, activeParentId, currentViewport);
+    const nextViewport = getViewportForParent(saved, nodeId);
+
+    set({
+      diagram: { ...saved, viewport: nextViewport },
+      activeParentId: nodeId,
+      editingNodeId: null,
+      editingEdgeId: null,
+    });
+    setEditingNodeId(null);
+    setInteracting(false);
+  },
+
+  navigateToParent: (parentId) => {
+    const { diagram, activeParentId, setEditingNodeId, setInteracting } = get();
+    if (!diagram) return;
+
+    const currentViewport = diagram.viewport;
+    const saved = persistLevelViewport(diagram, activeParentId, currentViewport);
+    const nextViewport = getViewportForParent(saved, parentId);
+
+    set({
+      diagram: { ...saved, viewport: nextViewport },
+      activeParentId: parentId,
+      editingNodeId: null,
+      editingEdgeId: null,
+    });
+    setEditingNodeId(null);
+    setInteracting(false);
+  },
 
   markNodeMoved: (nodeId) =>
     set((state) => {
@@ -97,15 +150,16 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
 
   commitDiagram: async (next, options = {}) => {
     const { recordHistory = true, persist = true } = options;
-    const { diagram } = get();
+    const { diagram, activeParentId } = get();
 
     if (recordHistory && diagram && !get().isApplyingHistory) {
       get().pushHistory();
     }
 
+    const withVp = persistLevelViewport(next, activeParentId, next.viewport);
     const withTimestamp: Diagram = {
-      ...next,
-      metadata: { ...next.metadata, updatedAt: new Date().toISOString() },
+      ...withVp,
+      metadata: { ...withVp.metadata, updatedAt: new Date().toISOString() },
     };
 
     set({ diagram: withTimestamp, error: null });
@@ -193,7 +247,9 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   updateViewport: (viewport) =>
     set((state) => {
       if (!state.diagram) return state;
-      return { diagram: { ...state.diagram, viewport } };
+      return {
+        diagram: persistLevelViewport(state.diagram, state.activeParentId, viewport),
+      };
     }),
 
   updateMetadataName: (name) =>

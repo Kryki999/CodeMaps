@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { readDiagramFile } from "@/lib/diagram-io";
-import { layoutDiagram } from "@/lib/auto-layout";
+import { layoutMissingPositions } from "@/lib/auto-layout";
 import { subscribeToDiagramFile } from "@/lib/file-watcher";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function GET() {
         try {
           const diagram = await readDiagramFile();
           if (!diagram || closed) return;
-          const laidOut = layoutDiagram(diagram);
+          const laidOut = layoutMissingPositions(diagram);
           const payload = `data: ${JSON.stringify(laidOut)}\n\n`;
           controller.enqueue(encoder.encode(payload));
         } catch {

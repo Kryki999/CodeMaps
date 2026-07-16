@@ -1,20 +1,33 @@
 import dagre from "@dagrejs/dagre";
 import { NODE_DIMENSIONS } from "./constants";
+import { filterDiagramByParent } from "./hierarchy";
 import type { Diagram, DiagramNode, Position } from "@/types/diagram";
 
-export function layoutDiagram(diagram: Diagram): Diagram {
-  const nodesNeedingLayout = diagram.nodes.filter((n) => !n.position);
-  if (nodesNeedingLayout.length === 0) return diagram;
+export function layoutDiagram(
+  diagram: Diagram,
+  activeParentId: string | null = null,
+): Diagram {
+  const { nodes: levelNodes } = filterDiagramByParent(diagram, activeParentId);
+  const needsLayout = levelNodes.some((n) => !n.position);
+  if (!needsLayout) return diagram;
 
-  return relayoutDiagram(diagram);
+  return relayoutDiagram(diagram, "TB", activeParentId);
 }
 
-/** Re-layout all nodes using Dagre, ignoring existing positions. */
+/**
+ * Re-layout nodes at a given parent level using Dagre.
+ * Nodes on other levels keep their positions.
+ */
 export function relayoutDiagram(
   diagram: Diagram,
   rankdir: "TB" | "LR" = "TB",
+  activeParentId: string | null = null,
 ): Diagram {
-  if (diagram.nodes.length === 0) return diagram;
+  const { nodes: levelNodes, edges: levelEdges } = filterDiagramByParent(
+    diagram,
+    activeParentId,
+  );
+  if (levelNodes.length === 0) return diagram;
 
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
@@ -26,34 +39,56 @@ export function relayoutDiagram(
     marginy: 48,
   });
 
-  for (const node of diagram.nodes) {
+  for (const node of levelNodes) {
     g.setNode(node.id, {
       width: NODE_DIMENSIONS.width,
       height: NODE_DIMENSIONS.height,
     });
   }
 
-  for (const edge of diagram.edges) {
+  for (const edge of levelEdges) {
     g.setEdge(edge.source, edge.target);
   }
 
   dagre.layout(g);
 
-  const positionedNodes: DiagramNode[] = diagram.nodes.map((node) => {
+  const positions = new Map<string, Position>();
+  for (const node of levelNodes) {
     const layoutNode = g.node(node.id);
     if (!layoutNode) {
-      return { ...node, position: { x: 0, y: 0 } };
+      positions.set(node.id, { x: 0, y: 0 });
+      continue;
     }
-
-    const position: Position = {
+    positions.set(node.id, {
       x: Math.round((layoutNode.x - NODE_DIMENSIONS.width / 2) / 16) * 16,
       y: Math.round((layoutNode.y - NODE_DIMENSIONS.height / 2) / 16) * 16,
-    };
+    });
+  }
 
-    return { ...node, position };
+  const positionedNodes: DiagramNode[] = diagram.nodes.map((node) => {
+    const pos = positions.get(node.id);
+    return pos ? { ...node, position: pos } : node;
   });
 
   return { ...diagram, nodes: positionedNodes };
+}
+
+/**
+ * Layout only nodes missing positions, grouping by parent level.
+ */
+export function layoutMissingPositions(diagram: Diagram): Diagram {
+  const parents = new Set<string | null>();
+  for (const node of diagram.nodes) {
+    if (!node.position) {
+      parents.add(node.parentId ?? null);
+    }
+  }
+
+  let next = diagram;
+  for (const parentId of parents) {
+    next = layoutDiagram(next, parentId);
+  }
+  return next;
 }
 
 export function layoutNewNodes(
@@ -66,5 +101,5 @@ export function layoutNewNodes(
     return existing ? { ...node, position: existing } : node;
   });
 
-  return layoutDiagram({ ...diagram, nodes: nodesWithPositions });
+  return layoutMissingPositions({ ...diagram, nodes: nodesWithPositions });
 }

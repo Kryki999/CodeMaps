@@ -1,6 +1,7 @@
 "use client";
 
 import { DiagramCanvas } from "@/components/canvas/DiagramCanvas";
+import { Breadcrumbs } from "@/components/toolbar/Breadcrumbs";
 import { ProjectToolbar } from "@/components/toolbar/ProjectToolbar";
 import { useDiagramSync } from "@/hooks/useDiagramSync";
 import { useDiagramStore } from "@/store/diagram-store";
@@ -14,6 +15,7 @@ export function Workspace() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#1a1a2e]">
       <ProjectToolbar />
+      <Breadcrumbs />
       <main className="relative flex-1">
         {isLoading && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#1a1a2e]/80">

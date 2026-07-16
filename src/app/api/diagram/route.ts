@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
-import { ensureDiagramFile, readDiagramFile, writeDiagramFile } from "@/lib/diagram-io";
-import { layoutDiagram } from "@/lib/auto-layout";
-import { formatValidationError, parseDiagram } from "@/lib/schema";
+import {
+  ensureDiagramFile,
+  migrateDiagram,
+  writeDiagramFile,
+} from "@/lib/diagram-io";
+import { layoutMissingPositions } from "@/lib/auto-layout";
 
 export async function GET() {
   try {
     const diagram = await ensureDiagramFile();
-    const laidOut = layoutDiagram(diagram);
+    const laidOut = layoutMissingPositions(diagram);
     return NextResponse.json(laidOut);
   } catch (error) {
     return NextResponse.json(
@@ -19,20 +22,13 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const body = (await request.json()) as unknown;
-    const validationError = formatValidationError(body);
-
-    if (validationError) {
-      return NextResponse.json({ error: validationError }, { status: 400 });
-    }
-
-    const diagram = parseDiagram(body);
-    const laidOut = layoutDiagram(diagram);
+    const migrated = migrateDiagram(body);
+    const laidOut = layoutMissingPositions(migrated);
     const saved = await writeDiagramFile(laidOut);
     return NextResponse.json(saved);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to save diagram" },
-      { status: 500 },
-    );
+    const message = error instanceof Error ? error.message : "Failed to save diagram";
+    const status = message.startsWith("Invalid diagram") ? 400 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
