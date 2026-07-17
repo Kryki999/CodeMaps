@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  ChevronUp,
   Download,
   FilePlus,
   FolderCog,
@@ -28,6 +29,22 @@ interface ConfigResponse {
   diagramPath?: string;
 }
 
+interface PickedFolderPayload {
+  cancelled?: boolean;
+  path?: string;
+  hasArchitecture?: boolean;
+  diagramRelativePath?: string;
+  stackProfile?: StackProfile;
+  message?: string;
+  error?: string;
+}
+
+interface DirListing {
+  path: string;
+  parent: string | null;
+  entries: { name: string; path: string }[];
+}
+
 export function ProjectToolbar() {
   const diagram = useDiagramStore((s) => s.diagram);
   const isConnected = useDiagramStore((s) => s.isConnected);
@@ -50,6 +67,9 @@ export function ProjectToolbar() {
   const [configMeta, setConfigMeta] = useState<string>("");
   const [configSaving, setConfigSaving] = useState(false);
   const [pickingFolder, setPickingFolder] = useState(false);
+  const [showBrowseDialog, setShowBrowseDialog] = useState(false);
+  const [browseListing, setBrowseListing] = useState<DirListing | null>(null);
+  const [browseLoading, setBrowseLoading] = useState(false);
   const [showDriftDialog, setShowDriftDialog] = useState(false);
   const [driftLoading, setDriftLoading] = useState(false);
   const [driftReport, setDriftReport] = useState<DriftReport | null>(null);
@@ -147,30 +167,73 @@ export function ProjectToolbar() {
     }
   };
 
-  const pickProjectFolder = async () => {
+  const applyPickedFolder = (data: PickedFolderPayload) => {
+    if (!data.path) return;
+    setProjectRoot(data.path);
+    if (data.diagramRelativePath) {
+      setDiagramRelativePath(data.diagramRelativePath);
+    }
+    if (data.stackProfile === "next" || data.stackProfile === "react-native") {
+      setStackProfile(data.stackProfile);
+    }
+    setConfigMeta(data.message ?? `Wybrano: ${data.path}`);
+  };
+
+  const loadBrowseListing = async (dirPath?: string) => {
+    setBrowseLoading(true);
+    try {
+      const qs = dirPath ? `?path=${encodeURIComponent(dirPath)}` : "";
+      const res = await fetch(`/api/project/browse${qs}`);
+      const data = (await res.json()) as DirListing & { error?: string };
+      if (!res.ok) throw new Error(data.error ?? "Nie udało się listować folderu");
+      setBrowseListing(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Błąd przeglądania");
+    } finally {
+      setBrowseLoading(false);
+    }
+  };
+
+  const openBrowseDialog = async () => {
+    setShowBrowseDialog(true);
+    await loadBrowseListing();
+  };
+
+  /** Native OS dialog — may appear behind the browser; check taskbar. */
+  const pickProjectFolderNative = async () => {
     setPickingFolder(true);
     try {
       const res = await fetch("/api/project/pick-folder", { method: "POST" });
-      const data = (await res.json()) as {
-        cancelled?: boolean;
-        path?: string;
-        hasArchitecture?: boolean;
-        diagramRelativePath?: string;
-        stackProfile?: StackProfile;
-        message?: string;
-        error?: string;
-      };
+      const data = (await res.json()) as PickedFolderPayload;
       if (!res.ok) throw new Error(data.error ?? "Wybór folderu nie powiódł się");
       if (data.cancelled || !data.path) return;
+      applyPickedFolder(data);
+      setShowBrowseDialog(false);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `${err.message} — użyj przeglądarki folderów poniżej.`
+          : "Błąd wyboru folderu",
+      );
+      if (!showBrowseDialog) await openBrowseDialog();
+    } finally {
+      setPickingFolder(false);
+    }
+  };
 
-      setProjectRoot(data.path);
-      if (data.diagramRelativePath) {
-        setDiagramRelativePath(data.diagramRelativePath);
-      }
-      if (data.stackProfile === "next" || data.stackProfile === "react-native") {
-        setStackProfile(data.stackProfile);
-      }
-      setConfigMeta(data.message ?? `Wybrano: ${data.path}`);
+  const confirmBrowseFolder = async () => {
+    if (!browseListing?.path) return;
+    setPickingFolder(true);
+    try {
+      const res = await fetch("/api/project/browse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: browseListing.path }),
+      });
+      const data = (await res.json()) as PickedFolderPayload;
+      if (!res.ok) throw new Error(data.error ?? "Nie udało się wybrać folderu");
+      applyPickedFolder(data);
+      setShowBrowseDialog(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Błąd wyboru folderu");
     } finally {
@@ -290,12 +353,12 @@ export function ProjectToolbar() {
         title="Mapowany projekt"
       >
         <p className="mb-3 text-xs leading-relaxed text-slate-400">
-          Wybierz folder projektu z dysku (zalecane) albo wpisz ścieżkę ręcznie.
-          Po zapisie wczyta się mapa z{" "}
+          Wybierz folder projektu (przeglądarka w aplikacji jest pewniejsza niż okno
+          systemu) albo wpisz ścieżkę ręcznie. Po zapisie wczyta się mapa z{" "}
           <code className="text-slate-300">.codemaps/architecture.json</code>.
         </p>
         <label className="block text-xs text-slate-400">projectRoot</label>
-        <div className="mt-1 flex gap-2">
+        <div className="mt-1 flex flex-wrap gap-2">
           <input
             value={projectRoot}
             onChange={(e) => setProjectRoot(e.target.value)}
@@ -305,17 +368,26 @@ export function ProjectToolbar() {
           <Button
             variant="default"
             disabled={pickingFolder}
-            onClick={() => void pickProjectFolder()}
-            title="Otwórz okno wyboru folderu"
+            onClick={() => void openBrowseDialog()}
+            title="Przeglądaj foldery w aplikacji"
             className="shrink-0"
           >
             <FolderOpen className="h-4 w-4" />
-            {pickingFolder ? "Czekam…" : "Wybierz…"}
+            Wybierz…
           </Button>
         </div>
+        <button
+          type="button"
+          disabled={pickingFolder}
+          onClick={() => void pickProjectFolderNative()}
+          className="mt-1 text-[10px] text-indigo-300/90 underline-offset-2 hover:underline disabled:opacity-50"
+        >
+          {pickingFolder ? "Czekam na okno systemu…" : "Albo otwórz okno systemu Windows"}
+        </button>
         {pickingFolder && (
           <p className="mt-1 text-[10px] text-amber-300/90">
-            Okno systemu powinno być otwarte — wybierz folder i potwierdź (albo Anuluj).
+            Jeśli okno jest otwarte, ale go nie widać — sprawdź pasek zadań (może być za
+            przeglądarką).
           </p>
         )}
         <label className="mt-3 block text-xs text-slate-400">diagramRelativePath</label>
@@ -345,6 +417,67 @@ export function ProjectToolbar() {
           </Button>
           <Button variant="default" disabled={configSaving} onClick={() => void saveConfig()}>
             {configSaving ? "Zapis…" : "Zapisz"}
+          </Button>
+        </div>
+      </Dialog>
+      <Dialog
+        open={showBrowseDialog}
+        onClose={() => setShowBrowseDialog(false)}
+        title="Wybierz folder projektu"
+        className="max-w-lg"
+      >
+        <p className="mb-2 break-all rounded-md border border-slate-700/80 bg-[#12122a] px-2 py-1.5 font-mono text-[11px] text-slate-300">
+          {browseListing?.path ?? "…"}
+        </p>
+        <div className="mb-2 flex gap-2">
+          <Button
+            variant="ghost"
+            disabled={browseLoading || !browseListing?.parent}
+            onClick={() => {
+              if (browseListing?.parent) void loadBrowseListing(browseListing.parent);
+            }}
+          >
+            <ChevronUp className="h-4 w-4" />
+            W górę
+          </Button>
+          <Button
+            variant="ghost"
+            disabled={pickingFolder}
+            onClick={() => void pickProjectFolderNative()}
+          >
+            Okno systemu
+          </Button>
+        </div>
+        <div className="max-h-64 overflow-y-auto rounded-md border border-slate-700/80 bg-[#12122a]">
+          {browseLoading && (
+            <p className="px-3 py-4 text-xs text-slate-400">Ładuję…</p>
+          )}
+          {!browseLoading && browseListing?.entries.length === 0 && (
+            <p className="px-3 py-4 text-xs text-slate-500">Brak podfolderów</p>
+          )}
+          {!browseLoading &&
+            browseListing?.entries.map((entry) => (
+              <button
+                key={entry.path}
+                type="button"
+                onClick={() => void loadBrowseListing(entry.path)}
+                className="flex w-full items-center gap-2 border-b border-slate-800/80 px-3 py-2 text-left text-xs text-slate-200 last:border-0 hover:bg-indigo-500/15"
+              >
+                <FolderOpen className="h-3.5 w-3.5 shrink-0 text-indigo-300" />
+                <span className="truncate">{entry.name}</span>
+              </button>
+            ))}
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setShowBrowseDialog(false)}>
+            Anuluj
+          </Button>
+          <Button
+            variant="default"
+            disabled={pickingFolder || !browseListing?.path}
+            onClick={() => void confirmBrowseFolder()}
+          >
+            {pickingFolder ? "…" : "Użyj tego folderu"}
           </Button>
         </div>
       </Dialog>

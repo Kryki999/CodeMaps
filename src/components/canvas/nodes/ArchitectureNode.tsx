@@ -69,6 +69,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
 
   const [label, setLabel] = useState(nodeData.label);
   const [purpose, setPurpose] = useState(nodeData.purpose ?? "");
+  const [rationale, setRationale] = useState(nodeData.rationale ?? "");
   const [description, setDescription] = useState(nodeData.description ?? "");
   const [tech, setTech] = useState((nodeData.tech ?? []).join(", "));
   const [statusValue, setStatusValue] = useState<NodeStatus>(status);
@@ -87,6 +88,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
     if (!isEditing) {
       setLabel(nodeData.label);
       setPurpose(nodeData.purpose ?? "");
+      setRationale(nodeData.rationale ?? "");
       setDescription(nodeData.description ?? "");
       setTech((nodeData.tech ?? []).join(", "));
       setStatusValue(nodeData.status ?? "planned");
@@ -98,6 +100,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
   }, [
     nodeData.label,
     nodeData.purpose,
+    nodeData.rationale,
     nodeData.description,
     nodeData.tech,
     nodeData.status,
@@ -122,6 +125,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
       await saveNodeEdit(id, {
         label,
         purpose,
+        rationale,
         description,
         tech,
         status: statusValue,
@@ -137,6 +141,7 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
     id,
     label,
     purpose,
+    rationale,
     description,
     tech,
     statusValue,
@@ -331,10 +336,26 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
             <textarea
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
-              rows={5}
-              className="nodrag nopan nowheel max-h-52 min-h-[6.5rem] w-full resize-y rounded-md border border-slate-600/60 bg-[#1a1a2e] px-2.5 py-2 text-xs leading-relaxed text-slate-200 outline-none focus:border-indigo-400"
+              rows={3}
+              className="nodrag nopan nowheel max-h-40 min-h-[4rem] w-full resize-y rounded-md border border-slate-600/60 bg-[#1a1a2e] px-2.5 py-2 text-xs leading-relaxed text-slate-200 outline-none focus:border-indigo-400"
               placeholder="Prostym językiem: do czego służy, za co odpowiada, co użytkownik z tego ma…"
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Dlaczego / intencja
+            </label>
+            <textarea
+              value={rationale}
+              onChange={(e) => setRationale(e.target.value)}
+              rows={6}
+              className="nodrag nopan nowheel max-h-72 min-h-[7.5rem] w-full resize-y rounded-md border border-indigo-500/30 bg-[#1a1a2e] px-2.5 py-2 text-xs leading-relaxed text-slate-200 outline-none focus:border-indigo-400"
+              placeholder="Problem który rozwiązujemy, założenia, UX/psychologia, biznes, trade-offy, dlaczego tak a nie inaczej, odrzucone alternatywy…"
+            />
+            <p className="mt-0.5 text-[9px] text-slate-500">
+              Pamięć projektu — dla Ciebie, zespołu i nowego agenta (handoff). Może być dłuższe.
+            </p>
           </div>
 
           <div>
@@ -344,8 +365,8 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="nodrag nopan nowheel max-h-48 min-h-[5rem] w-full resize-y rounded-md border border-slate-600/60 bg-[#1a1a2e] px-2.5 py-2 text-xs leading-relaxed text-slate-300 outline-none focus:border-indigo-400"
+              rows={3}
+              className="nodrag nopan nowheel max-h-40 min-h-[4rem] w-full resize-y rounded-md border border-slate-600/60 bg-[#1a1a2e] px-2.5 py-2 text-xs leading-relaxed text-slate-300 outline-none focus:border-indigo-400"
               placeholder="Ograniczenia, mock vs real, wskazówki dla programisty / agenta…"
             />
           </div>
@@ -472,20 +493,30 @@ function ArchitectureNodeComponent({ id, data, selected }: NodeProps) {
             </div>
           )}
 
-          {(nodeData.purpose || nodeData.description) && (
+          {(nodeData.purpose || nodeData.rationale || nodeData.description) && (
             <div className="mt-1.5 space-y-1">
               {nodeData.purpose && (
-                <p className="line-clamp-4 text-[11px] leading-relaxed text-slate-300">
+                <p className="line-clamp-3 text-[11px] leading-relaxed text-slate-300">
                   {nodeData.purpose}
                 </p>
               )}
-              {!nodeData.purpose && nodeData.description && (
-                <p className="line-clamp-4 text-[11px] leading-relaxed text-slate-400">
+              {!nodeData.purpose && nodeData.rationale && (
+                <p className="line-clamp-3 text-[11px] leading-relaxed text-slate-300">
+                  {nodeData.rationale}
+                </p>
+              )}
+              {nodeData.purpose && nodeData.rationale && (
+                <p className="line-clamp-2 text-[10px] leading-snug text-slate-400">
+                  {nodeData.rationale}
+                </p>
+              )}
+              {!nodeData.purpose && !nodeData.rationale && nodeData.description && (
+                <p className="line-clamp-3 text-[11px] leading-relaxed text-slate-400">
                   {nodeData.description}
                 </p>
               )}
-              {nodeData.purpose && nodeData.description && (
-                <p className="line-clamp-2 text-[10px] leading-snug text-slate-500">
+              {(nodeData.purpose || nodeData.rationale) && nodeData.description && (
+                <p className="line-clamp-1 text-[10px] leading-snug text-slate-500">
                   {nodeData.description}
                 </p>
               )}

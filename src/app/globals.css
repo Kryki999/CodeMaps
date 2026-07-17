@@ -39,6 +39,16 @@ body {
   animation: dashdraw 0.5s linear infinite;
 }
 
+.react-flow__edge:hover path {
+  stroke: #818cf8 !important;
+  stroke-width: 2.5 !important;
+  opacity: 1 !important;
+}
+
+.react-flow__edge.selected {
+  z-index: 10;
+}
+
 @keyframes dashdraw {
   to {
     stroke-dashoffset: -10;

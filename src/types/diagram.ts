@@ -30,6 +30,12 @@ export interface NodeData {
    * Shown on the collapsed tile; agents use it for intent.
    */
   purpose?: string;
+  /**
+   * Why this exists / why this approach — product intent, UX/psychology,
+   * business rationale, trade-offs, rejected alternatives. Living project memory
+   * for humans and handoff to new agents. Can be longer than purpose.
+   */
+  rationale?: string;
   /** Technical notes — constraints, implementation reality, agent/dev hints. */
   description?: string;
   status?: NodeStatus;

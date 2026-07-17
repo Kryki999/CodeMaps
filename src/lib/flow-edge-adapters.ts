@@ -5,6 +5,9 @@ export interface ArchitectureEdgeData extends Record<string, unknown> {
   label?: string;
   edgeType?: string;
   dashed?: boolean;
+  /** Index among edges sharing the same target (for path stagger). */
+  routeIndex?: number;
+  routeCount?: number;
 }
 
 export function diagramEdgeToFlowEdge(edge: DiagramEdge): Edge<ArchitectureEdgeData> {

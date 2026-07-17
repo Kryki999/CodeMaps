@@ -20,10 +20,12 @@ Feature / fix jest „done” dopiero gdy:
 
 - [ ] Kod działa
 - [ ] Mapa odzwierciedla zmianę **albo** świadome `codemaps: no arch change`
-- [ ] Przy zmianie kafelka: sensowny `purpose` (prosty język) + `description` (tech) jeśli zachowanie/stan tech się zmienił
+- [ ] Przy zmianie kafelka: sensowny `purpose` (prosty język), `rationale` (dlaczego / intencja, gdy decyzja produktowa), `description` (tech) jeśli zachowanie/stan tech się zmienił
 - [ ] W PR widać diff `.codemaps/` **albo** komentarz: `codemaps: no arch change`
 
 **Kiedy mapa NIE jest wymagana:** poprawka copy/CSS, drobny bugfix w istniejącym pliku bez nowej odpowiedzialności, rename lokalny bez zmiany granic modułów.
+
+**Kiedy uzupełniać `rationale`:** nowy ficzer / zmiana kierunku / świadomy trade-off omówiony z człowiekiem — zapisz w mapie, nie zostawiaj tylko w czacie. Brownfield bez źródeł „dlaczego” → nie zmyślaj.
 
 **Kiedy warto odpalić Drift przed pracą:** nowy moduł, podmiana mock→API, większy refaktor granic — nie przy kosmetyce.
 
@@ -61,7 +63,7 @@ Obowiązkowo przy feature / refaktorze / usuwaniu / bugfixie:
 5. Bug naprawiony → `health: stable` (lub `warning` jeśli WIP)
 6. Usunięty moduł → usuń węzeł + krawędzie **albo** `status: deprecated`
 7. Nie przebudowuj całej mapy przy lokalnej zmianie; nie reimplementuj sąsiadów z mapy
-8. Aktualizuj `purpose` / `description` gdy zmienia się sens lub stan tech kafelka
+8. Aktualizuj `purpose` / `rationale` / `description` gdy zmienia się sens, intencja lub stan tech kafelka
 
 Pełny playbook: [`.cursor/skills/codemaps-architect/SKILL.md`](../.cursor/skills/codemaps-architect/SKILL.md)  
 Kontrakt JSON: [`AGENTS.md`](../AGENTS.md)

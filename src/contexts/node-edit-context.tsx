@@ -21,6 +21,7 @@ import type { ArchitectureNodeData } from "@/lib/flow-adapters";
 export interface NodeEditValues {
   label: string;
   purpose: string;
+  rationale: string;
   description: string;
   tech: string;
   status: NodeStatus;
@@ -123,6 +124,7 @@ export function NodeEditProvider({
               data: {
                 ...node.data,
                 purpose: values.purpose.trim() || undefined,
+                rationale: values.rationale.trim() || undefined,
                 description: values.description.trim() || undefined,
                 tech: splitList(values.tech),
                 status: values.status,

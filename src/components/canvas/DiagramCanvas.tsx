@@ -26,6 +26,7 @@ import { generateEdgeId } from "@/lib/diagram-history";
 import { diagramNodeToFlowNode, type ArchitectureNodeData } from "@/lib/flow-adapters";
 import { diagramEdgeToFlowEdge } from "@/lib/flow-edge-adapters";
 import type { ArchitectureEdgeData } from "@/lib/flow-edge-adapters";
+import { enrichFlowEdges } from "@/lib/edge-routing";
 import {
   countChildren,
   countExternalConnections,
@@ -44,15 +45,17 @@ function toFlowNodes(
   activeParentId: string | null,
 ) {
   const { nodes, edges } = filterDiagramByParent(diagram, activeParentId);
-  return {
-    nodes: nodes.map((n) =>
-      diagramNodeToFlowNode(n, {
-        childrenCount: countChildren(diagram.nodes, n.id),
-        externalEdgeCount: countExternalConnections(diagram, n.id, activeParentId),
-      }),
-    ),
-    edges: edges.map((e) => diagramEdgeToFlowEdge(e)),
-  };
+  const flowNodes = nodes.map((n) =>
+    diagramNodeToFlowNode(n, {
+      childrenCount: countChildren(diagram.nodes, n.id),
+      externalEdgeCount: countExternalConnections(diagram, n.id, activeParentId),
+    }),
+  );
+  const flowEdges = enrichFlowEdges(
+    edges.map((e) => diagramEdgeToFlowEdge(e)),
+    nodes,
+  );
+  return { nodes: flowNodes, edges: flowEdges };
 }
 
 function CanvasInner() {
@@ -263,6 +266,7 @@ function CanvasInner() {
             connectionMode={ConnectionMode.Loose}
             connectionLineStyle={{ stroke: "#818cf8", strokeWidth: 2 }}
             defaultEdgeOptions={{ type: "default" }}
+            elevateEdgesOnSelect
             className="bg-[#1a1a2e]"
           >
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#2a2a4a" />

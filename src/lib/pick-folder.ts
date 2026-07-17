@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
-import { access, readFile } from "node:fs/promises";
+import { access, readdir, readFile, stat } from "node:fs/promises";
 import type { StackProfile } from "@/types/diagram";
 
 const execFileAsync = promisify(execFile);
@@ -15,35 +15,45 @@ export interface PickedProjectInfo {
   message?: string;
 }
 
+export interface DirListing {
+  path: string;
+  parent: string | null;
+  entries: { name: string; path: string }[];
+}
+
 function normalizePickedPath(raw: string): string {
   return path.normalize(raw.trim().replace(/^['"]|['"]$/g, "").replace(/\/$/, ""));
 }
 
 async function pickWindows(initialPath?: string): Promise<string | null> {
-  const initial = initialPath
-    ? initialPath.replace(/'/g, "''")
-    : "";
-  const script = [
-    "Add-Type -AssemblyName System.Windows.Forms",
-    "$dialog = New-Object System.Windows.Forms.FolderBrowserDialog",
-    "$dialog.Description = 'Wybierz folder projektu (z .codemaps)'",
-    "$dialog.ShowNewFolderButton = $false",
-    initial ? `$dialog.SelectedPath = '${initial}'` : "",
-    "$result = $dialog.ShowDialog()",
-    "if ($result -eq [System.Windows.Forms.DialogResult]::OK) {",
-    "  [Console]::Out.Write($dialog.SelectedPath)",
-    "}",
-  ]
-    .filter(Boolean)
-    .join("; ");
-
-  const { stdout } = await execFileAsync(
-    "powershell.exe",
-    ["-NoProfile", "-STA", "-Command", script],
-    { windowsHide: true, maxBuffer: 1024 * 1024, timeout: 300_000 },
+  const scriptPath = path.join(
+    process.cwd(),
+    "scripts",
+    "pick-folder-windows.ps1",
   );
-  const picked = normalizePickedPath(stdout);
-  return picked || null;
+  const args = [
+    "-NoProfile",
+    "-STA",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    scriptPath,
+  ];
+  if (initialPath) args.push(initialPath);
+
+  try {
+    const { stdout } = await execFileAsync("powershell.exe", args, {
+      // false: some Windows setups never surface WinForms when the host is hidden
+      windowsHide: false,
+      maxBuffer: 1024 * 1024,
+      timeout: 300_000,
+    });
+    const picked = normalizePickedPath(stdout);
+    return picked || null;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Nie udało się otworzyć okna wyboru folderu (Windows): ${message}`);
+  }
 }
 
 async function pickMac(): Promise<string | null> {
@@ -85,7 +95,7 @@ async function pickLinux(initialPath?: string): Promise<string | null> {
       return picked || null;
     } catch {
       throw new Error(
-        "Brak zenity/kdialog — wpisz ścieżkę ręcznie albo zainstaluj zenity.",
+        "Brak zenity/kdialog — użyj przeglądarki folderów w UI albo wpisz ścieżkę ręcznie.",
       );
     }
   }
@@ -112,6 +122,36 @@ async function fileExists(abs: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** List child directories for the in-app folder browser fallback. */
+export async function listDirectories(dirPath: string): Promise<DirListing> {
+  const normalized = path.normalize(dirPath.trim() || os.homedir());
+  const st = await stat(normalized);
+  if (!st.isDirectory()) {
+    throw new Error("Ścieżka nie jest folderem");
+  }
+
+  const parentDir = path.dirname(normalized);
+  const parent = parentDir !== normalized ? parentDir : null;
+
+  const names = await readdir(normalized);
+  const entries: { name: string; path: string }[] = [];
+
+  for (const name of names) {
+    if (name.startsWith(".")) continue;
+    const full = path.join(normalized, name);
+    try {
+      const s = await stat(full);
+      if (s.isDirectory()) entries.push({ name, path: full });
+    } catch {
+      // skip inaccessible
+    }
+  }
+
+  entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+
+  return { path: normalized, parent, entries };
 }
 
 /** Inspect selected folder for .codemaps map + optional local config. */

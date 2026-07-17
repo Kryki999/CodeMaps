@@ -33,10 +33,11 @@ export function relayoutDiagram(
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({
     rankdir,
-    nodesep: 100,
-    ranksep: 120,
-    marginx: 48,
-    marginy: 48,
+    nodesep: 140,
+    ranksep: 160,
+    edgesep: 40,
+    marginx: 56,
+    marginy: 56,
   });
 
   for (const node of levelNodes) {

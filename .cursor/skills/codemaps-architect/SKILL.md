@@ -70,10 +70,12 @@ Then continue with Non-negotiables and the matching flow.
 - `data.status`: lifecycle — `planned` | `existing` | `deprecated`
 - `data.health`: stability — `stable` | `warning` | `critical` (use `critical` when you find a real bug in `codeRef`)
 
-**Living docs on the tile (short):** `purpose` (plain language), `description` (technical), `tech`, `deps`, `exports`, `codeRef`.
+**Living docs on the tile:**
 
-- **`purpose`:** what this is for, what it does, who it’s for — language a non-developer understands. Prefer this on Level 1–2.
-- **`description`:** technical notes (mocks vs real, constraints, impl hints). Do not duplicate `purpose`.
+- **`purpose`:** what this is for, what it does, who it’s for — language a non-developer understands. Prefer on Level 1–2. Keep relatively short.
+- **`rationale`:** **why** this exists / why this approach — product intent, UX/psychology, business goal, trade-offs, rejected alternatives. This is **project memory** for humans and new agents (handoff). May be longer when the decision matters. Fill when building *with* the user; on brownfield only write what you can verify — don’t invent.
+- **`description`:** technical notes (mocks vs real, constraints, impl hints). Do not duplicate `purpose` / `rationale`.
+- Also: `tech`, `deps`, `exports`, `codeRef`.
 
 ## Choose a flow
 
@@ -92,7 +94,7 @@ Then continue with Non-negotiables and the matching flow.
 1. Clarify stack only if missing (default: Next.js / React / TS / API / DB as needed).
 2. Draft **Level 1 only**: main containers + real edges (`http`, `data-flow`, `dependency`…).
 3. Write/replace `.codemaps/architecture.json` (`version: "1.1"`). Root nodes: `parentId: null`.
-4. Fill `purpose` (plain language) + short `description` (tech) + `tech`; `status: planned`; `health: stable` unless known risk.
+4. Fill `purpose` (plain language) + short `description` (tech) + `tech`; add `rationale` when the user stated why / trade-offs; `status: planned`; `health: stable` unless known risk.
 5. Stop. Ask if they want to drill into a specific container (Level 2) — don’t invent deep trees unprompted.
 
 ### Flow B — Brownfield (code → map)
@@ -102,7 +104,7 @@ Then continue with Non-negotiables and the matching flow.
 3. Level 1 from real deployable/runtime pieces; `status: existing` + `codeRef` to folders/entrypoints.
 4. Level 2 for major modules the user cares about (Auth, Dashboard, Payments…).
 5. Level 3 only for critical functions when asked or when debugging.
-6. Put human intent in `purpose`; facts vs guesses / tech caveats in `description`. Prefer `health: warning` over inventing structure.
+6. Put human “what” in `purpose`; verified tech caveats in `description`. Leave `rationale` thin unless the user/docs explain *why* — never invent business psychology on brownfield. Prefer `health: warning` over inventing structure.
 7. Write JSON; validate IDs / parentIds / edges (see AGENTS checklist).
 
 ### Flow C — Update (patch existing map)
@@ -118,12 +120,12 @@ Then continue with Non-negotiables and the matching flow.
 Triggered when the user pastes a **CodeMaps — Scaffold z mapy** prompt (from the tile button) or asks to implement a node.
 
 1. Read `.codemaps/config.json` → `stackProfile` (`next` | `react-native`) and `projectRoot`.
-2. Use the prompt/slice focus node: `purpose`, `description`, `tech`, `deps`, `exports`, edges/neighbors.
+2. Use the prompt/slice focus node: `purpose`, `rationale`, `description`, `tech`, `deps`, `exports`, edges/neighbors.
 3. **Scope:** implement the focus (and its children if needed). Neighbors = integrate only — do not re-build Auth/DB/Stripe/etc. from scratch. Do not drive-by refactor unrelated map nodes.
 4. Implement in **projectRoot** using stack conventions:
    - **next:** App Router (`app/...`, `app/api/.../route.ts`, `lib/...`); DB in-repo if mapped; `external` = SDK + env.
    - **react-native:** features/screens (Expo `app/` or `src/features`); **no** mobile `app/api` — API is another map node; native SDKs for auth/payments.
-5. After code: patch `.codemaps/architecture.json` when structure/behavior of the tile changed — `codeRef`, `status`, `purpose`, `description`, `exports`/`deps` as needed; same change set as code. Pure UI polish → `codemaps: no arch change`.
+5. After code: patch `.codemaps/architecture.json` when structure/behavior **or product intent** of the tile changed — `codeRef`, `status`, `purpose`, **`rationale`**, `description`, `exports`/`deps` as needed; same change set as code. Pure UI polish → `codemaps: no arch change`.
 6. Follow [docs/SYNC.md](../../../docs/SYNC.md). Optional: Flow E before big scaffolds if the map may be stale.
 
 User may add extra requirements under the pasted prompt — honor those.
@@ -148,7 +150,7 @@ Map drift kills the product. Rules:
 2. Bug found → `health: critical` (+ `codeRef`); fixed → `stable`
 3. Deleted feature → remove node/edges or `status: deprecated`
 4. **Architecture unchanged** (copy, CSS, drobny bugfix w istniejącym pliku, rename lokalny bez nowej odpowiedzialności): **do not** churn the map — say explicitly `codemaps: no arch change`
-5. Keep `purpose` / `description` in sync when behavior or tech reality of a tile changes
+5. Keep `purpose` / `rationale` / `description` in sync when behavior, intent, or tech reality of a tile changes
 6. Human process + CI: [docs/SYNC.md](../../../docs/SYNC.md)
 
 ### When to run Drift first (Flow E)
@@ -161,7 +163,8 @@ Before a **larger** task (nowy moduł, podmiana mock→API, refaktor granic, „
 - Every `parentId` / edge endpoint exists; no parent cycles.
 - Edges reflect real runtime/data dependencies — not “everything connected to everything”.
 - Cross-level edges may exist in JSON; canvas shows only same-level edges — that’s OK.
-- Polish language in labels / `purpose` / descriptions to match the user’s language (PL/EN).
+- Polish language in labels / `purpose` / `rationale` / descriptions to match the user’s language (PL/EN).
+- When the user explains *why* a feature exists during a session, capture it in `rationale` on the relevant tile(s) — don’t leave that only in chat.
 
 ## Anti-patterns
 

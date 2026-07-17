@@ -6,6 +6,8 @@ import {
 } from "@/lib/pick-folder";
 import { getProjectRootAbsolute } from "@/lib/codemaps-path";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 /** Native folder dialog can wait on the user for a long time. */
 export const maxDuration = 300;
 

@@ -48,10 +48,11 @@ Nodes are a **flat list** with optional `parentId` (not a nested tree). This kee
 7. **`data.health` (stability):** `stable` | `warning` | `critical` — flag `critical` when you find a bug in `codeRef`
 8. **`data.tech`:** technology badges
 9. **`data.purpose`:** plain-language “po co to jest / za co odpowiada” (non-technical)
-10. **`data.description`:** technical notes for developers and agents
-11. **`data.deps` / `data.exports`:** living documentation (libraries, key functions/types)
-12. **`data.codeRef`:** path to source file/folder
-13. **`data.depthHint`:** optional `1` | `2` | `3` C4 hint for agents
+10. **`data.rationale`:** why this approach — intent, UX/business, trade-offs (project memory for humans + agents; may be longer)
+11. **`data.description`:** technical notes for developers and agents
+12. **`data.deps` / `data.exports`:** living documentation (libraries, key functions/types)
+13. **`data.codeRef`:** path to source file/folder
+14. **`data.depthHint`:** optional `1` | `2` | `3` C4 hint for agents
 
 ## Edge Rules
 
@@ -140,6 +141,7 @@ Before saving, verify:
   "data": {
     "tech": ["React"],
     "purpose": "Logowanie i wejście użytkownika do aplikacji — formularz, błędy, przejście do panelu.",
+    "rationale": "Chcemy krótki, bezstresowy first-run: jeden ekran, jasne błędy, bez zbędnych kroków przed Dashboard. Odrzuciliśmy magic-link na start (za mało mail infra).",
     "description": "Ekrany i flow logowania; LoginForm + submit handler",
     "status": "planned",
     "health": "stable",

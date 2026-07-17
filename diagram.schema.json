@@ -82,6 +82,10 @@
               "type": "string",
               "description": "Plain-language role: what this is for, what it does (non-technical)"
             },
+            "rationale": {
+              "type": "string",
+              "description": "Why this approach: product intent, UX/psychology, business, trade-offs, rejected alternatives — living memory for humans and agents"
+            },
             "description": {
               "type": "string",
               "description": "Technical notes for developers and agents"

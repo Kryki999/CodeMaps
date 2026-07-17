@@ -11,6 +11,7 @@ function nodeLine(node: DiagramNode): string {
   return [
     `- **${node.id}** (${node.type}) — ${node.label}`,
     d?.purpose ? `  - po co: ${d.purpose}` : null,
+    d?.rationale ? `  - dlaczego: ${d.rationale}` : null,
     d?.description ? `  - tech: ${d.description}` : null,
     d?.tech?.length ? `  - stack: ${list(d.tech)}` : null,
     d?.codeRef ? `  - codeRef: ${d.codeRef}` : null,
@@ -158,6 +159,14 @@ export function buildAgentPrompt(
     `- label: ${focus.label}`,
     `- type: ${focus.type}`,
     `- purpose (po co to jest, prostym językiem): ${d?.purpose?.trim() || "—"}`,
+    `- rationale (dlaczego / intencja / trade-offy — pamięć projektu):`,
+    d?.rationale?.trim()
+      ? d.rationale
+          .trim()
+          .split("\n")
+          .map((line) => `  ${line}`)
+          .join("\n")
+      : "  —",
     `- description (notatki techniczne): ${d?.description?.trim() || "—"}`,
     `- tech: ${list(d?.tech)}`,
     `- deps: ${list(d?.deps)}`,
@@ -189,6 +198,7 @@ export function buildAgentPrompt(
     `   - [ ] \`codeRef\` wskazuje realną ścieżkę`,
     `   - [ ] \`status\` (\`existing\` gdy kod jest; \`planned\` / \`deprecated\` wg stanu)`,
     `   - [ ] \`purpose\` (prosty język) aktualne względem zachowania`,
+    `   - [ ] \`rationale\` (dlaczego tak: intencja, UX/biznes, trade-offy) — uzupełnij przy decyzjach produktowych; nie zmyślaj przy brownfield`,
     `   - [ ] \`description\` (notatki tech) — mock vs real, ograniczenia`,
     `   - [ ] \`exports\` / \`deps\` jeśli publiczne API / biblioteki się zmieniły`,
     `   - [ ] \`health\` — \`critical\` przy znalezionym bugu w codeRef; po fixie \`stable\`/\`warning\``,

@@ -74,7 +74,7 @@ CodeMaps to tablica w przeglądarce + agent w **Cursorze**. W apce nie ma czatu 
 |--------|--------|
 | Przeciągnij kafelek | Zmiana pozycji (zapis do JSON) |
 | Połącz uchwyty (handles) | Nowa krawędź między węzłami |
-| **Dwuklik** w kafelek | Expand — edycja nazwy, purpose, notatek tech, tech, deps, exports, codeRef, status, health |
+| **Dwuklik** w kafelek | Expand — edycja nazwy, purpose, rationale (dlaczego), notatek tech, tech, deps, exports, codeRef, status, health |
 | **Wejdź do środka** (gdy ma dzieci) | Drill-down na poziom niżej |
 | **Breadcrumbs** (System > …) | Powrót wyżej |
 | Esc w expanded | Anuluj edycję (nie wychodzi z poziomu) |
@@ -166,6 +166,7 @@ Zrób po kolei:
    - Planowane / stuby: status "planned", health "warning" gdy mock/scaffold
    - Na każdym sensownym kafelku (zwłaszcza L1–L2):
      - purpose = prostym językiem: po co to jest, za co odpowiada (zrozumiałe bez kodu)
+     - rationale = dlaczego tak (intencja, UX/biznes, trade-offy) — tylko jeśli wiesz z kodu/docs/usera; nie zmyślaj
      - description = notatki techniczne (mock vs real, ograniczenia, wskazówki)
    - tech, deps, exports gdzie mają sens
    - Krawędzie tylko realne zależności (http, data-flow, dependency, …)
@@ -182,7 +183,7 @@ Narysuj architekturę CodeMaps z koncepcji (greenfield / Flow A).
 
 - Zapisz `.codemaps/architecture.json` (+ config jak wyżej) w wskazanym / bieżącym projekcie.
 - Tylko Level 1 na start (kontenery + realne krawędzie). Level 2 tylko jeśli poproszę.
-- status: planned; purpose (prosty język) + krótkie description (tech) + tech.
+- status: planned; purpose (prosty język) + rationale (jeśli user podał dlaczego) + krótkie description (tech) + tech.
 - Bez Mermaid jako SSOT. Nie wymyślaj głębokiego drzewa Level 3.
 - Po mapie: zaproponuj kolejny krok (drill-down jednego kontenera LUB scaffold z kafelka).
 ```
