@@ -2,6 +2,8 @@
   "name": "codemaps",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "description": "Architecture as Code — visual C4 board for Cursor agents",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
